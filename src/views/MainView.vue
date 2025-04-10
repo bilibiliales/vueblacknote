@@ -316,6 +316,11 @@ export default {
   cursor: pointer;
   appearance: none;
   min-width: 80px;
+  transition: all 0.2s;
+}
+
+.edit-button:hover {
+  background-color: #005aa4;
 }
 
 .status-select {

@@ -72,7 +72,7 @@ export default {
 .tag-name-input {
   flex: 1;
   margin-right: auto;
-  font-weight: 500;
+  font-size: 16px;
   border: none;
   outline: none;
   background: transparent;

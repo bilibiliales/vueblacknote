@@ -18,7 +18,7 @@
             <h3>云备份</h3>
             <div class="setting-group">
                 <label class="setting-label">云备份设置</label>
-                <button class="save-btn" @click="alerts">启用</button>
+                <button class="save-btn" @click.prevent="alerts">启用</button>
             </div>
         </div>
     </div>

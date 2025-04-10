@@ -80,7 +80,13 @@
 
     <!-- 主内容区 -->
     <div id="main-content">
-      <router-view :views="views"/>
+      <transition name="main-fade" mode="out-in">
+        <router-view :views="views"/>
+      </transition>
+    </div>
+
+    <div class="icp-footer">
+      <a href="https://beian.miit.gov.cn/" target="_blank">湘ICP备2025112469号-1</a>
     </div>
 
     <!-- 偏好设置模态窗口 -->
@@ -212,6 +218,25 @@ export default {
     padding: 0;
   }
 
+  .icp-footer {
+    position: fixed;
+    width: 100%;
+    text-align: center;
+    bottom: 10px;
+    font-size: 14px;
+  }
+
+  .icp-footer a {
+    color: #888;
+    margin-left: 130px;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .icp-footer a:hover {
+    color: #555;
+  }
+
   .text {
     transition: all 0.3s;
   }
@@ -227,6 +252,7 @@ export default {
     width: 260px;
     height: 100%;
     border-right: 1px solid #e0e0e0;
+    backdrop-filter: blur(8px);
     padding: 20px;
     position: fixed;
   }
@@ -331,6 +357,7 @@ export default {
     align-items: center;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
     justify-content: space-between;
     padding: 0 20px;
   }
@@ -346,7 +373,7 @@ export default {
   .nav-btn {
     margin-left: 20px;
     font-size: 30px;
-    color: #aaaaae;
+    color: #aaa;
     transition: all 0.2s;
   }
   
@@ -393,5 +420,26 @@ export default {
   #main-content {
     margin-left: 301px;
     margin-top: 80px;
+  }
+
+  .main-fade-enter-active,
+  .main-fade-leave-active {
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);
+  }
+  .main-fade-enter {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  .main-fade-enter-to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  .main-fade-leave {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  .main-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-50px);
   }
 </style>

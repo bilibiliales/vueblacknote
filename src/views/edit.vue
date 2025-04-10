@@ -1,31 +1,33 @@
 <template>
-    <!-- 密码输入模态框 -->
-    <div v-if="pretendEdit" class="password-modal">
-      <div class="password-box">
-          <h3>编辑被拒绝</h3>
-          <p class="error">无法进入编辑，请将<p class="error">任务移出回收站后重试。</p></p>
-          <div class="modal-buttons">
-            <button @click="cancelPassword" class="btn-cancel">返回</button>
+  <div>
+    <transition>
+    <div v-if="showModal" class="password-modal">
+      <!-- 密码输入模态框 -->
+          <div v-if="pretendEdit" div class="password-box">
+              <h3>编辑被拒绝</h3>
+              <p class="error">无法进入编辑，请将<p class="error">任务移出回收站后重试。</p></p>
+              <div class="modal-buttons">
+                <button @click="cancelPassword" class="btn-cancel">返回</button>
+              </div>
           </div>
-        </div>
-    </div>
-    <div v-else-if="showPasswordModal" class="password-modal">
-        <div class="password-box">
-          <h3>{{ isEncrypting ? '设置加密密码' : '请输入密码' }}</h3>
-          <p v-if="decryptError" class="error">{{ decryptError }}</p>
-          <input 
-            type="password" 
-            v-model="inputPassword" 
-            placeholder="输入密码" 
-            @keydown.enter="handlePassword"
-          />
-          <div class="modal-buttons">
-            <button @click="cancelPassword" class="btn-cancel">取消</button>
-            <button @click="handlePassword" class="btn-confirm">确认</button>
+          <div v-else-if="showPasswordModal" class="password-box">
+            <h3>{{ isEncrypting ? '设置加密密码' : '请输入密码' }}</h3>
+            <p v-if="decryptError" class="error">{{ decryptError }}</p>
+            <input 
+              type="password" 
+              v-model="inputPassword" 
+              placeholder="输入密码" 
+              @keydown.enter="handlePassword"
+            />
+            <div class="modal-buttons">
+              <button @click="cancelPassword" class="btn-cancel">取消</button>
+              <button @click="handlePassword" class="btn-confirm">确认</button>
+            </div>
           </div>
-        </div>
     </div>
-    <div v-else class="edit-container" :style="{ backgroundColor: containerColor }">
+  </transition>
+  <transition name="edit-scale">
+    <div v-if="!showModal" class="edit-container" :style="{ backgroundColor: containerColor }">
       <!-- 编辑区域 -->
         <div class="header">
           <h4 class="title-input" :style="{ color: textColor }">{{ currentNote.title }}</h4>
@@ -38,7 +40,8 @@
                    alt="加密状态" 
                    class="lock-icon" />
             </button>
-            <button @click="saveNote" class="save-btn">保存</button>
+            <button @click="saveNote" v-if="isEdit" class="save-btn">保存</button>
+            <button v-else @click="isEdit=true" class="edit-btn">编辑</button>
           </div>
         </div>
   
@@ -59,24 +62,36 @@
         <div class="editor-container">
           <textarea
             v-model="decryptedContent"
+            v-if="isEdit"
             class="text-editor"
           ></textarea>
+          <div v-else-if="$store.state.preferences.enable_markdown" class="markdown-wrapper">
+            <vue-markdown :source="decryptedContent" class="text-view" :toc="false" :breaks="true"></vue-markdown>
+          </div>
+          <textarea v-model="decryptedContent" readonly="readonly" v-else class="text-editor"></textarea>
         </div>
-      </div>
-  </template>
+    </div>
+  </transition>
+  </div>
+</template>
   
   <script>
   import CryptoJS from 'crypto-js'
   import dayjs from 'dayjs';
   import 'dayjs/locale/zh-cn';
   import customParseFormat from 'dayjs/plugin/customParseFormat';
+  import VueMarkdown from 'vue-markdown'
 
   dayjs.extend(customParseFormat);
   dayjs.locale('zh-cn');
   
   export default {
+    components: {
+      VueMarkdown
+    },
     data() {
       return {
+        isEdit: false,
         pretendEdit: false,
         currentNote: null,
         decryptedContent: '',
@@ -99,6 +114,9 @@
       },
       containerColor() {
         return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
+      },
+      showModal() {
+        return this.pretendEdit || this.showPasswordModal;
       },
     },
     created() {
@@ -159,6 +177,10 @@
       },
   
       cancelPassword() {
+        if (this.pretendEdit) {
+          this.$router.go(-1)
+          return
+        }
         this.showPasswordModal = false
         this.decryptError = ''
         if(!this.isEncrypting){
@@ -213,7 +235,7 @@
  
           this.$store.commit('updateNote', this.currentNote)
           this.$store.commit('saveState');
-          this.$router.go(-1)
+          this.isEdit=false;
         } catch (e) {
           console.error('保存失败:', e)
           alert('保存失败，请检查内容格式')
@@ -227,6 +249,9 @@
         this.decryptedContent = '';
         this.showPasswordModal = false;
         this.pretendEdit = false;
+        this.isEncrypting = false;
+        this.encryptionKey = null;
+        this.inputPassword = ''
         
         const newNote = this.$store.state.notes.find(n => n.n_id === newNId);
         if (!newNote) {
@@ -263,7 +288,16 @@
     flex-direction: column;
     height: 90%;
     width: 95%;
+    min-height: 300px;
+    margin-top: 15px;
     max-width: 1600px;
+    flex: 1;
+    display: flex;
+  }
+
+  .markdown-wrapper {
+    width: 100%;
+    height: 500px;
   }
   
   /* 标题与按钮 */
@@ -295,6 +329,25 @@
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .save-btn:hover {
+    background: #3e8e40;
+  }
+
+  .edit-btn {
+    background: #0078D7;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .edit-btn:hover {
+    background-color: #0069c0;
   }
 
   .tag-color {
@@ -306,6 +359,15 @@
     gap: 10px;
     margin-top: 10px;
     }
+
+  .encryption-btn {
+    border-radius: 10%;
+    transition: all 0.2s;
+  }
+
+  .encryption-btn:hover {
+    filter: brightness(0.5);
+  }
   
   /* 编辑器 */
   .editor-container {
@@ -322,7 +384,20 @@
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 6px;
+    overflow-y: auto;
+    display: block;
     resize: none;
+  }
+
+  .text-view {
+    width: 97%;
+    height: 470px;
+    padding: 15px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow-y: auto;
+    white-space: pre-wrap;
   }
   
   /* 密码模态框 */
@@ -332,7 +407,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -360,11 +436,16 @@
     padding: 8px 20px;
     border-radius: 8px;
     border: none;
-    background-color: #666;
+    background-color: #888;
     color: white;
     cursor: pointer;
     appearance: none;
     min-width: 80px;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background-color: #666;
   }
 
   .btn-confirm {
@@ -376,6 +457,11 @@
     cursor: pointer;
     appearance: none;
     min-width: 80px;
+    transition: all 0.2s;
+  }
+
+  .btn-confirm:hover {
+    background-color: #0069c0;
   }
   
   .modal-buttons {
@@ -388,4 +474,47 @@
     color: red;
     font-size: 14px;
   }
-  </style>
+
+    /*transition组件*/
+    .edit-scale-enter-active,
+    .edit-scale-leave-active {
+      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);
+    }
+    .edit-scale-enter {
+      opacity: 0;
+    }
+    .edit-scale-enter-to {
+      opacity: 1;
+    }
+    .edit-scale-leave {
+      opacity: 1;
+    }
+    .edit-scale-leave-to {
+      opacity: 0;
+    }
+
+    .v-enter-active,
+    .v-leave-active {
+      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);
+    }
+
+    .v-enter {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    
+    .v-enter-to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .v-leave {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .v-leave-to {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+</style>

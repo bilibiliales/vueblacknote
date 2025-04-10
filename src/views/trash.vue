@@ -309,6 +309,11 @@
     cursor: pointer;
     appearance: none;
     min-width: 80px;
+    transition: all 0.2s;
+  }
+
+  .edit-button:hover {
+    background-color: #b8524b;
   }
   
   .status-select {

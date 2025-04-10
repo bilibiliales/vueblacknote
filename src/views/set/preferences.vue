@@ -1,25 +1,27 @@
 <!-- Preferences.vue -->
 <template>
-  <div v-if="isVisible" class="preferences-overlay" @click.self="close">
-    <div class="preferences-window" :style="{ backgroundColor: menuBgColor }">
-      <div class="points">
-        <a href="javascript:;" @click="close" class="point" id="point1"></a>
-        <a href="javascript:;" @click.prevent="" class="point" id="point2"></a>
-        <a href="javascript:;" @click.prevent="" class="point" id="point3"></a>
-        <span style="color: #5e5e61; margin-left: 20%;">“小黑记事本”偏好设置</span>
-      </div>
-      <!-- 顶部导航栏 -->
-      <nav class="preferences-nav">
-        <button v-for="(tab, index) in tabs" :key="index" @click="selectTab(tab.path)" :class="{ 'active': currentTab === tab.path }" class="nav-item">
-          <span class="text" :style="{ color: textColor }">{{ tab.name }}</span>
-        </button>
-      </nav>
-      <div class="modal-body">
-        <!-- 动态加载设置项 -->
-        <component :is="currentTab"></component>
+  <Transition>
+    <div v-if="isVisible" class="preferences-overlay" @click.self="close">
+      <div class="preferences-window">
+        <div class="points">
+          <a href="javascript:;" @click="close" class="point" id="point1"></a>
+          <a href="javascript:;" @click.prevent="" class="point" id="point2"></a>
+          <a href="javascript:;" @click.prevent="" class="point" id="point3"></a>
+          <span style="color: #5e5e61; margin-left: 20%;">“小黑记事本”偏好设置</span>
+        </div>
+        <!-- 顶部导航栏 -->
+        <nav class="preferences-nav">
+          <button v-for="(tab, index) in tabs" :key="index" @click="selectTab(tab.path)" :class="{ 'active': currentTab === tab.path }" class="nav-item">
+            <span class="text" :style="{ color: textColor }">{{ tab.name }}</span>
+          </button>
+        </nav>
+        <div class="modal-body">
+          <!-- 动态加载设置项 -->
+          <component :is="currentTab"></component>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
 <script>
   import Basic from '@/views/set/basic.vue'
@@ -54,11 +56,6 @@
       }
     },
     computed: {
-      menuBgColor() {
-        const color = this.$store.state.preferences.item_color;
-        const rgbaColor = color+"CC";
-        return rgbaColor;
-      },
       textColor() {
         return this.$store.state.preferences.dark ? '#333333' : '#ffffff';
       }
@@ -90,18 +87,22 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
   }
-  
+
   .preferences-window {
     width: 650px;
     height: 600px;
     border-radius: 10px;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    
   }
   
   .preferences-nav {
@@ -135,5 +136,30 @@
   .preferences-content {
     padding: 24px;
   }
+
+  /*transition组件*/
+  .v-enter-active,
+  .v-leave-active {
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);;
+  }
+
+  .v-enter {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
   
+  .v-enter-to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  
+  .v-leave {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  
+  .v-leave-to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
   </style>

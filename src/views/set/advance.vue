@@ -1,40 +1,42 @@
 <template>
-    <div class="advance-settings">
-        <!-- 高级设置 -->
-        <div class="setting-item">
-            <h3>高级设置</h3>
-            <div class="setting-group">
-                <div class="checkbox-item">
-                    <label for= "remove_warning" class="setting-label">删除笔记前弹窗警告</label><br/>
-                    <input type="checkbox" id="remove_warning" v-model="$store.state.preferences.remove_warning" class="checkbox" @change="$store.commit('saveState')"><br/><br/>
-                    <label for= "remove_force" class="setting-label">强制删除笔记（不放入回收站）</label><br/>
-                    <input type="checkbox" id="remove_force" v-model="$store.state.preferences.remove_force" class="checkbox" @change="$store.commit('saveState')"><br/>
-                </div>
-            </div>
-            <h3>数据管理</h3>
-            <div class="setting-group">
-                <label class="setting-label">删除本地数据</label>
-                <button class="remove-btn" @click="alerts">删除</button>
-            </div>
+  <div class="advance-settings">
+    <!-- 高级设置 -->
+    <div class="setting-item">
+        <h3>高级设置</h3>
+        <div class="setting-group">
+          <div class="checkbox-item">
+            <label for= "remove_warning" class="setting-label">删除笔记前弹窗警告</label><br/>
+            <input type="checkbox" id="remove_warning" v-model="$store.state.preferences.remove_warning" class="checkbox" @change="$store.commit('saveState')"><br/>
+            <label for= "remove_force" class="setting-label">强制删除笔记（不放入回收站）</label><br/>
+            <input type="checkbox" id="remove_force" v-model="$store.state.preferences.remove_force" class="checkbox" @change="$store.commit('saveState')"><br/>
+            <label for= "enable_markdown" class="setting-label">在任务预览中启用MarkDown</label><br/>
+            <input type="checkbox" id="enable_markdown" v-model="$store.state.preferences.enable_markdown" class="checkbox" @change="$store.commit('saveState')"><br/>
+          </div>
+        </div>
+        <h3>数据管理</h3>
+        <div class="setting-group">
+          <label class="setting-label">删除本地数据</label>
+          <button class="remove-btn" @click="alerts">删除</button>
         </div>
     </div>
+  </div>
 </template>
 <script>
 export default {
-    methods: {
-        alerts() {
-            if(confirm("你确定要删除本地所有数据吗？内存数据及已导出的备份不会被删除。")){
-              const state_key = "blacknote_data";
-              localStorage.removeItem(state_key);
-              if (confirm("删除成功！需要立即清空内存吗？")) {
-                window.location.reload();
-              }
-              else {
-                alert("已删除本地数据，如需清空内存数据请勿点击确定并立即刷新本窗口。");
-              }
-            }
+  methods: {
+    alerts() {
+      if(confirm("你确定要删除本地所有数据吗？内存数据及已导出的备份不会被删除。")){
+        const state_key = "blacknote_data";
+        localStorage.removeItem(state_key);
+        if (confirm("删除成功！需要立即清空内存吗？")) {
+          window.location.reload();
         }
+        else {
+          alert("已删除本地数据，如需清空内存数据请勿点击确定并立即刷新本窗口。");
+        }
+      }
     }
+  }
 }
 </script>
    

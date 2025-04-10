@@ -15,11 +15,13 @@
     "save": "^2.9.0",
     "screenfull": "^6.0.2",
     "vue": "^2.5.2",
+    "vue-markdown": "^2.2.4",
     "vue-router": "^3.0.1",
     "vuex": "^3.6.2"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
+    "@types/vue-markdown": "^2.2.4",
     "autoprefixer": "^7.1.2",
     "babel-core": "^6.22.1",
     "babel-helper-vue-jsx-merge-props": "^2.0.3",

@@ -239,7 +239,7 @@ export default {
     transform: translateX(20px);
   }
   .checkbox:checked {
-    background-color: #152434;
+    background-color: #111;
   }
   .remove-btn {
     padding: 10px 25px;
