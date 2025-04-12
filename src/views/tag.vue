@@ -1,7 +1,10 @@
 <!-- tag.vue -->
 <template>
-    <!--列表视图-->
-    <div v-if="views===1" class="list-views">
+  <div :key="$route.params.id">
+    <!--动态变换动画-->
+    <transition :name="transName" mode="out-in" appear @enter="handleEnter">
+      <!--列表视图-->
+    <div v-if="views===1" key="list" class="list-views">
       <div v-for="note in filteredNotes" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="list-note">
         <span class="list-left">
           <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'DD') }}</h4>
@@ -35,7 +38,7 @@
     </div>
   
     <!--卡片视图-->
-    <div v-else class="card-views">
+    <div v-else key="card" class="card-views">
       <div v-for="note in filteredNotes" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="card-note">
         <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'MMMDD日') }}</h4>
         <span :style="{ color: textColor }">{{ formatDate(note.created_at, 'HH:mm') }}</span>
@@ -61,6 +64,8 @@
         <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空任务</span>
       </div>
     </div>
+    </transition>
+  </div>
   </template>
   
   <script>
@@ -80,7 +85,8 @@
       return {
         // 运行时参数
         removed: "remove",
-        previousStatus: ""
+        previousStatus: "",
+        isInitialLoad: true,
       };
     },
     methods: {
@@ -165,6 +171,9 @@
           return;
         }
       },
+      handleEnter() {
+        this.isInitialLoad = false;
+      },
     },
     created() {
         this.checkTagVisibility(this.$route.params.id);
@@ -185,11 +194,19 @@
       },
       listBgColor() {
         return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
-      }
+      },
+      transName() {
+        return this.isInitialLoad ? 'main-fade' : 
+              this.views === 1 ? 'slide-right' : 'slide-left';
+      },
+    },
+    mounted() {
+      this.isInitialLoad = false;
     },
     watch: {
       '$route.params.id': {
         handler(newId) {
+          this.isInitialLoad = true;
           this.checkTagVisibility(newId);//防直接改url
         },
         immediate: true
@@ -389,5 +406,40 @@
   
   .add-task:hover {
     background: rgba(128,128,128,0.1);
+  }
+  .main-fade-enter-active {
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);
+  }
+  .main-fade-enter {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  .main-fade-enter-to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  .slide-left-enter-active,
+  .slide-right-enter-active,
+  .slide-left-leave-active,
+  .slide-right-leave-active {
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1);
+  }
+  
+  .slide-left-enter {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  .slide-left-leave-to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  
+  .slide-right-enter {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  .slide-right-leave-to {
+    opacity: 0;
+    transform: translateX(20px);
   }
   </style>

@@ -1,7 +1,10 @@
 <!-- 已删除的全部任务 -->
 <template>
-    <!--列表视图-->
-    <div v-if="views===1" class="list-views">
+  <div>
+    <!--动态变换动画-->
+    <transition :name="transName" mode="out-in" appear>
+      <!--列表视图-->
+    <div v-if="views===1" key="list" class="list-views">
       <div v-for="note in $store.state.notes.filter(note => note.status == 'remove')" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="list-note">
         <span class="list-left">
           <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'DD') }}</h4>
@@ -34,7 +37,7 @@
     </div>
   
     <!--卡片视图-->
-    <div v-else class="card-views">
+    <div v-else key="card" class="card-views">
       <div v-for="note in $store.state.notes.filter(note => note.status == 'remove')" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="card-note">
         <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'MMMDD日') }}</h4>
         <span :style="{ color: textColor }">{{ formatDate(note.created_at, 'HH:mm') }}</span>
@@ -60,6 +63,8 @@
         <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-彻底清空</span>
       </div>
     </div>
+    </transition>
+  </div>
   </template>
   
   <script>
@@ -80,6 +85,7 @@
         // 运行时参数
         removed: "remove",
         previousStatus: "",
+        isInitialLoad: true,
       };
     },
     methods: {
@@ -155,8 +161,15 @@
       },
       listBgColor() {
         return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
-      }
-    }
+      },
+      transName() {
+        return this.isInitialLoad ? 'main-fade' : 
+              this.views === 1 ? 'slide-right' : 'slide-left';
+      },
+    },
+    mounted() {
+      this.isInitialLoad = false;
+    },
   }
   </script>
   
@@ -345,5 +358,40 @@
   
   .add-task:hover {
     background: rgba(128,128,128,0.1);
+  }
+  .main-fade-enter-active {
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);
+  }
+  .main-fade-enter {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  .main-fade-enter-to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  .slide-left-enter-active,
+  .slide-right-enter-active,
+  .slide-left-leave-active,
+  .slide-right-leave-active {
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1);
+  }
+  
+  .slide-left-enter {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  .slide-left-leave-to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  
+  .slide-right-enter {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  .slide-right-leave-to {
+    opacity: 0;
+    transform: translateX(20px);
   }
   </style>

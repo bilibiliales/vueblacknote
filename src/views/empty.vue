@@ -1,21 +1,16 @@
 <template>
-    <div class="basic-settings">
-      <!-- 空页面 -->
-      <div class="setting-item">
-        <h1>404 Not Found</h1>
-        <h3>这是一个空页面，啥都木有……</h3>
-      </div>
-    </div>
-  </template>
+  <div class="empty">
+    <!-- 空页面 -->
+    <h1>404 Not Found</h1>
+    <h3>这是一个空页面，啥都木有……</h3>
+  </div>
+</template>
    
-  <script>
+<script>
   export default {
-    name: 'BasicSettings',
+    name: 'empty',
     data() {
       return {}
     },
-    methods: {
-      
-    },
   }
-  </script>
+</script>

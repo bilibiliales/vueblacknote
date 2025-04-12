@@ -1,7 +1,7 @@
 <template>
   <div>
-    <transition>
-    <div v-if="showModal" class="password-modal">
+    <transition appear>
+    <div v-if="showModal" class="password-modal" @click.self="cancelPassword">
       <!-- 密码输入模态框 -->
           <div v-if="pretendEdit" div class="password-box">
               <h3>编辑被拒绝</h3>
@@ -26,7 +26,7 @@
           </div>
     </div>
   </transition>
-  <transition name="edit-scale">
+  <transition name="edit-scale" appear>
     <div v-if="!showModal" class="edit-container" :style="{ backgroundColor: containerColor }">
       <!-- 编辑区域 -->
         <div class="header">

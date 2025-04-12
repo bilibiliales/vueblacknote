@@ -228,7 +228,6 @@ export default {
 
   .icp-footer a {
     color: #888;
-    margin-left: 130px;
     text-decoration: none;
     transition: color 0.3s;
   }
@@ -422,24 +421,4 @@ export default {
     margin-top: 80px;
   }
 
-  .main-fade-enter-active,
-  .main-fade-leave-active {
-    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);
-  }
-  .main-fade-enter {
-    opacity: 0;
-    transform: translateY(-50px);
-  }
-  .main-fade-enter-to {
-    opacity: 1;
-    transform: translateY(0px);
-  }
-  .main-fade-leave {
-    opacity: 1;
-    transform: translateY(0px);
-  }
-  .main-fade-leave-to {
-    opacity: 0;
-    transform: translateY(-50px);
-  }
 </style>
