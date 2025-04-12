@@ -5,9 +5,9 @@
         <h3>高级设置</h3>
         <div class="setting-group">
           <div class="checkbox-item">
-            <label for= "remove_warning" class="setting-label">删除笔记前弹窗警告</label><br/>
+            <label for= "remove_warning" class="setting-label">删除任务前弹窗警告</label><br/>
             <input type="checkbox" id="remove_warning" v-model="$store.state.preferences.remove_warning" class="checkbox" @change="$store.commit('saveState')"><br/>
-            <label for= "remove_force" class="setting-label">强制删除笔记（不放入回收站）</label><br/>
+            <label for= "remove_force" class="setting-label">强制删除任务（不放入回收站）</label><br/>
             <input type="checkbox" id="remove_force" v-model="$store.state.preferences.remove_force" class="checkbox" @change="$store.commit('saveState')"><br/>
             <label for= "enable_markdown" class="setting-label">在任务预览中启用MarkDown</label><br/>
             <input type="checkbox" id="enable_markdown" v-model="$store.state.preferences.enable_markdown" class="checkbox" @change="$store.commit('saveState')"><br/>
