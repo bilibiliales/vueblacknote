@@ -5,7 +5,8 @@
     <h3>👈点击左侧任一标签开始使用</h3>
     <p>如因页面报错、数据损坏等原因导致无法进入偏好设置——高级——删除本地数据，请转到浏览器设置——网站数据管理——清除本网站的数据</p>
     或&nbsp;<a href="#" @click.prevent="alerts" class="btn">强制删除本地数据</a><br/><br/>
-    <a href="https://github.com/bilibiliales/vueblacknote" style="color: #333; text-decoration: none;" target="_blank">版本号：1.0.4</a>
+    <a href="https://github.com/bilibiliales/vueblacknote" style="color: #666; text-decoration: none;" target="_blank">版本号：1.0.5->></a><br/>
+    <a href="https://gitee.com/bilibiliales/vueblacknote" style="color: #666; text-decoration: none;" target="_blank">备用仓库地址->></a>
   </div>
 </template>
    
