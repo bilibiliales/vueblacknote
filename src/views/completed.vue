@@ -5,7 +5,7 @@
     <transition :name="transName" mode="out-in" appear>
       <!--列表视图-->
   <div v-if="views===1" key="list" class="list-views">
-    <div v-for="note in $store.state.notes.filter(note => note.status == 'done')" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="list-note">
+    <div v-for="note in filteredNotes" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="list-note">
       <span class="list-left">
         <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'DD') }}</h4>
         <span :style="{ color: textColor }">{{ formatDate(note.created_at, 'MMM') }}</span>
@@ -32,6 +32,9 @@
     <!--新建任务-->
     <div class="list-note" :style="{ backgroundColor: listBgColor }">
       <span class="footer" :style="{ color: textColor }">合计：{{ totalItems }}项</span>
+      <span class="search" v-if="$store.state.preferences.enable_search" :style="{ color: textColor }">搜索：
+        <input type="text" v-model="searchText" @keyup.enter="applySearch" placeholder="按下回车开始查找……" class="search-input">
+      </span>
       <span class="add-task" :style="{ color: textColor } " @click="createNewTask">+新建任务</span>
       <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空任务</span>
     </div>
@@ -39,7 +42,7 @@
 
   <!--卡片视图-->
   <div v-else key="card" class="card-views">
-    <div v-for="note in $store.state.notes.filter(note => note.status == 'done')" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="card-note">
+    <div v-for="note in filteredNotes" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="card-note">
       <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'MMMDD日') }}</h4>
       <span :style="{ color: textColor }">{{ formatDate(note.created_at, 'HH:mm') }}</span>
       <br/>
@@ -60,6 +63,9 @@
     <!--不需要改底部-->
     <div class="card-note-footer" :style="{ backgroundColor: listBgColor }">
       <span class="footer" :style="{ color: textColor }">合计：{{ totalItems }}项</span>
+      <span class="search" v-if="$store.state.preferences.enable_search" :style="{ color: textColor }">搜索：
+        <input type="text" v-model="searchText" @keyup.enter="applySearch" placeholder="按下回车开始查找……" class="search-input">
+      </span>
       <span class="add-task" :style="{ color: textColor } " @click="createNewTask">+新建任务</span>
       <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空任务</span>
     </div>
@@ -87,6 +93,8 @@ export default {
       removed: "remove",
       previousStatus: "",
       isInitialLoad: true,
+      searchText: '',
+      appliedSearchText: '',
     };
   },
   methods: {
@@ -143,8 +151,10 @@ export default {
     },
     removeAllTask() {
       //当前所有页面
-      const filters = note => note.status == 'done';
-      const visibleNotes = this.$store.state.notes.filter(filters);
+      const filters = note => 
+        note.status == 'done' && 
+        note.title.includes(this.appliedSearchText);
+      const visibleNotes = this.filteredNotes;
       if (this.$store.state.preferences.remove_warning) {
         if (confirm(`确定要删除本页面的全部${visibleNotes.length}项任务吗？`)) {
           this.$store.commit('removeAllNotes', filters);
@@ -158,10 +168,13 @@ export default {
     editNote(noteId) {
       this.$router.push(`/edit/${noteId}`)
     },
+    applySearch() {
+      this.appliedSearchText = this.searchText;
+    },
   },
   computed: {
     totalItems() {
-      return this.$store.state.notes.filter(note => note.status == 'done').length;
+      return this.filteredNotes.length;
     },
     textColor() {
       return this.$store.state.preferences.item_color;
@@ -173,6 +186,25 @@ export default {
       return this.isInitialLoad ? 'main-fade' : 
              this.views === 1 ? 'slide-right' : 'slide-left';
     },
+    filteredNotes() {
+      return this.$store.state.notes.filter(note => 
+        note.status == 'done' && 
+        note.title.includes(this.appliedSearchText)
+      );
+    },
+    totalItems() {
+      return this.filteredNotes.length;
+    },
+  },
+  watch: {
+    '$store.state.preferences.enable_search': {
+      handler(newVal) {
+        if (!newVal) {
+          this.searchText = '';
+          this.appliedSearchText = '';
+        }
+      },
+    }
   },
   mounted() {
     this.isInitialLoad = false;
@@ -353,6 +385,10 @@ export default {
   font-size: 16px;
 }
 
+.search {
+  padding: 4px;
+}
+
 .add-task {
   text-align: center;
   cursor: pointer;
@@ -365,6 +401,22 @@ export default {
 
 .add-task:hover {
   background: rgba(128,128,128,0.1);
+}
+
+.search-input {
+  padding-left: 10px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  color:#888;
+  background: rgba(175, 175, 175,0.2);
+  text-align: left;
+  transition: all 0.3s;
+  border: none;
+  outline: none;
+}
+.search-input:focus {
+  background: rgba(128, 128, 128,0.2);
 }
 .main-fade-enter-active {
     transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);

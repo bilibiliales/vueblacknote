@@ -40,8 +40,9 @@ export default {
 }
 
 .setting-item {
-  margin-bottom: 30px;
+  margin-bottom: 25px;
   padding: 15px;
+  padding-bottom: 5px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

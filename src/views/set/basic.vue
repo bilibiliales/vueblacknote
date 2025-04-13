@@ -6,7 +6,7 @@
         <div class="setting-group">
           <div class="checkbox-item">
             <label for="dark" class="setting-label">深色模式：</label>
-            <input type="checkbox" id="dark" v-model="$store.state.preferences.dark" @click="changeDark" @change="$store.commit('saveState')" class="checkbox">
+            <input type="checkbox" id="dark" v-model="$store.state.preferences.dark" @click="changeDark" @change="$store.commit('saveState')" class="dark-checkbox">
           </div>
         </div>
    
@@ -23,10 +23,7 @@
             <button class="remove-btn" @click="removePath">清空背景</button>
           </div>
         </div>
-      </div>
-   
-      <!-- 默认视图设置 -->
-      <div class="setting-item">
+        <!-- 默认视图设置 -->
         <h3>默认视图</h3>
         <div class="setting-group">
           <label class="setting-label">启动时显示：</label>
@@ -36,13 +33,18 @@
             <option value="completed">已完成</option>
           </select>
         </div>
-   
         <div class="setting-group">
           <label class="setting-label">默认视图：</label>
           <select v-model="$store.state.preferences.default_view" class="custom-select" @change="updateDefaultView($event.target.value)">
             <option value="1">列表视图</option>
             <option value="2">卡片视图</option>
           </select>
+        </div>
+        <div class="setting-group">
+          <div class="checkbox-item">
+            <label for= "enable_search" class="setting-label">启用标题搜索：</label>
+            <input type="checkbox" id="enable_search" v-model="$store.state.preferences.enable_search" class="checkbox" @change="$store.commit('saveState')">
+          </div>
         </div>
       </div>
     </div>
@@ -130,6 +132,7 @@ export default {
     display: flex;
     align-items: center;
     margin: 12px 0;
+    padding-bottom: 4px;
   }
    
   .setting-label {
@@ -213,7 +216,32 @@ export default {
   .checkbox-item {
     display: flex;
     align-items: center;
-    gap: 5px;
+  }
+  .dark-checkbox {
+    width: 40px;
+    height: 20px;
+    appearance: none;
+    background-color: #bfbfbf;
+    border-radius: 20px;
+    position: relative;
+    transition: all 0.4s;
+  }
+  .dark-checkbox::before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+  }
+  .dark-checkbox:checked::before {
+    transform: translateX(20px);
+  }
+  .dark-checkbox:checked {
+    background-color: #111;
   }
   .checkbox {
     width: 40px;
@@ -239,7 +267,7 @@ export default {
     transform: translateX(20px);
   }
   .checkbox:checked {
-    background-color: #111;
+    background-color: #2196f3;
   }
   .remove-btn {
     padding: 10px 25px;

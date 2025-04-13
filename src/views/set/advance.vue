@@ -5,17 +5,27 @@
         <h3>高级设置</h3>
         <div class="setting-group">
           <div class="checkbox-item">
-            <label for= "remove_warning" class="setting-label">删除任务前弹窗警告</label><br/>
-            <input type="checkbox" id="remove_warning" v-model="$store.state.preferences.remove_warning" class="checkbox" @change="$store.commit('saveState')"><br/>
-            <label for= "remove_force" class="setting-label">强制删除任务（不放入回收站）</label><br/>
-            <input type="checkbox" id="remove_force" v-model="$store.state.preferences.remove_force" class="checkbox" @change="$store.commit('saveState')"><br/>
-            <label for= "enable_markdown" class="setting-label">在任务预览中启用MarkDown</label><br/>
-            <input type="checkbox" id="enable_markdown" v-model="$store.state.preferences.enable_markdown" class="checkbox" @change="$store.commit('saveState')"><br/>
+            <label for= "remove_warning" class="setting-label">删除任务前弹窗警告：</label>
+            <input type="checkbox" id="remove_warning" v-model="$store.state.preferences.remove_warning" class="checkbox" @change="$store.commit('saveState')">
           </div>
         </div>
+        <div class="setting-group">
+          <div class="checkbox-item">
+            <label for= "remove_force" class="setting-label">强制删除任务（不放入回收站）：</label>
+            <input type="checkbox" id="remove_force" v-model="$store.state.preferences.remove_force" class="checkbox" @change="$store.commit('saveState')">
+          </div>
+        </div>
+        <div class="setting-group">
+          <div class="checkbox-item">
+            <label for= "enable_markdown" class="setting-label">在任务预览中启用MarkDown：</label>
+            <input type="checkbox" id="enable_markdown" v-model="$store.state.preferences.enable_markdown" class="checkbox" @change="$store.commit('saveState')">
+          </div>
+        </div>
+      </div>
+      <div class="setting-item">
         <h3>数据管理</h3>
         <div class="setting-group">
-          <label class="setting-label">删除本地数据</label>
+          <label class="setting-label">强制删除网页localstorage数据：</label>
           <button class="remove-btn" @click="alerts">删除</button>
         </div>
     </div>
@@ -64,10 +74,11 @@ export default {
     display: flex;
     align-items: center;
     margin: 12px 0;
+    padding-bottom: 10px;
   }
    
   .setting-label {
-    width: 120px;
+    width: 210px;
     color: #666;
     font-size: 14px;
   }
@@ -116,13 +127,15 @@ export default {
     margin-left: 5px;
     color: #666;
   }
-
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+  }
   .checkbox {
     width: 40px;
     height: 20px;
     appearance: none;
     background-color: #bfbfbf;
-    margin-top: 5px;
     border-radius: 20px;
     position: relative;
     transition: all 0.4s;
@@ -142,7 +155,7 @@ export default {
     transform: translateX(20px);
   }
   .checkbox:checked {
-    background-color: #2196F3;
+    background-color: #2196f3;
   }
   .remove-btn {
       padding: 10px 25px;

@@ -32,6 +32,9 @@
       <!--新建任务-->
       <div class="list-note" :style="{ backgroundColor: listBgColor }">
         <span class="footer" :style="{ color: textColor }">合计：{{ totalItems }}项</span>
+        <span class="search" v-if="$store.state.preferences.enable_search" :style="{ color: textColor }">搜索：
+          <input type="text" v-model="searchText" @keyup.enter="applySearch" placeholder="按下回车开始查找……" class="search-input">
+        </span>
         <span class="add-task" :style="{ color: textColor } " @click="createNewTask">+新建任务</span>
         <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空任务</span>
       </div>
@@ -60,6 +63,9 @@
       <!--不需要改底部-->
       <div class="card-note-footer" :style="{ backgroundColor: listBgColor }">
         <span class="footer" :style="{ color: textColor }">合计：{{ totalItems }}项</span>
+        <span class="search" v-if="$store.state.preferences.enable_search" :style="{ color: textColor }">搜索：
+          <input type="text" v-model="searchText" @keyup.enter="applySearch" placeholder="按下回车开始查找……" class="search-input">
+        </span>
         <span class="add-task" :style="{ color: textColor } " @click="createNewTask">+新建任务</span>
         <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空任务</span>
       </div>
@@ -87,6 +93,8 @@
         removed: "remove",
         previousStatus: "",
         isInitialLoad: true,
+        searchText: '',
+        appliedSearchText: '',
       };
     },
     methods: {
@@ -147,7 +155,8 @@
         const currentTagId = this.$route.params.id;
         const filters = note => 
           note.status !== 'remove' && 
-          note.tags.includes(currentTagId)
+          note.tags.includes(currentTagId) && 
+          note.title.includes(this.appliedSearchText);
         const visibleNotes = this.$store.state.notes.filter(filters);
         if (this.$store.state.preferences.remove_warning) {
           if (confirm(`确定要删除本页面的全部${visibleNotes.length}项任务吗？`)) {
@@ -161,6 +170,9 @@
       },
       editNote(noteId) {
         this.$router.push(`/edit/${noteId}`)
+      },
+      applySearch() {
+        this.appliedSearchText = this.searchText;
       },
       checkTagVisibility(tagId) {
         const tag = this.$store.state.tags.find(t => t.id === tagId);
@@ -183,7 +195,8 @@
         const tagId = this.$route.params.id;
         return this.$store.state.notes.filter(note => 
           note.status !== 'remove' && 
-          note.tags.includes(tagId)
+          note.tags.includes(tagId) && 
+          note.title.includes(this.appliedSearchText)
         );
       },
       totalItems() {
@@ -216,6 +229,14 @@
           this.checkTagVisibility(this.$route.params.id);//更改show后实时修改
         },
         deep: true
+      },
+      '$store.state.preferences.enable_search': {
+        handler(newVal) {
+          if (!newVal) {
+            this.searchText = '';
+            this.appliedSearchText = '';
+          }
+        },
       }
     },
   }
@@ -393,6 +414,10 @@
     color: #b5b5b5;
     font-size: 16px;
   }
+
+  .search {
+    padding: 4px;
+  }
   
   .add-task {
     text-align: center;
@@ -406,6 +431,22 @@
   
   .add-task:hover {
     background: rgba(128,128,128,0.1);
+  }
+
+  .search-input {
+    padding-left: 10px;
+    height: 30px;
+    border-radius: 6px;
+    border: none;
+    color:#888;
+    background: rgba(175, 175, 175,0.2);
+    text-align: left;
+    transition: all 0.3s;
+    border: none;
+    outline: none;
+  }
+  .search-input:focus {
+    background: rgba(128, 128, 128,0.2);
   }
   .main-fade-enter-active {
     transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);

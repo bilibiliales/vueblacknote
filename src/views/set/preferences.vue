@@ -18,6 +18,9 @@
         <div class="modal-body">
           <!-- 动态加载设置项 -->
           <component :is="currentTab"></component>
+          <div class="footer">
+            <a href="javascript:;" @click="pushRoot">1.0.6</a>
+          </div>
         </div>
       </div>
     </div>
@@ -53,6 +56,13 @@
       },
       selectTab(tabItem) {
         this.$emit('tab-change', tabItem);
+      },
+      pushRoot(){
+        if (this.$route.path !== `/`){
+          this.$router.push('/');
+        }
+        this.$emit('close');
+        return;
       }
     },
     computed: {
@@ -64,6 +74,24 @@
 </script>
   
   <style scoped>
+  .footer {
+    position: fixed;
+    width: 100%;
+    text-align: center;
+    bottom: 4px;
+    font-size: 14px;
+  }
+
+  .footer a {
+    color: #888;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .footer a:hover {
+    color: #555;
+  }
+
   .point {
     margin-top: 20px;
     margin-left: 20px;
