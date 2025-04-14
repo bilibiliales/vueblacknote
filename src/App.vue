@@ -54,6 +54,9 @@
         <button class="nav-btn" @click="$router.go(-1)">&lt;</button>
         <button class="nav-btn" @click="$router.go(1)">&gt;</button>
         <span class="current-title">{{ currentTitle }}</span>
+        <div v-if="this.$store.state.preferences.pause_save_state" style="height: 30px; width: 30px; margin-top: 5px;">
+          <img src="./resource/取消保存.png" alt="取消保存">
+        </div>
       </div>
       
       <div class="view-controls">
@@ -390,8 +393,12 @@ export default {
   .view-controls.active {
     filter: brightness(0.9);
   }
+
+  .nav-controls {
+    display: flex;
+  }
   
-  .view-controls img, .toolbar-controls img {
+  .nav-controls img, .view-controls img, .toolbar-controls img {
     margin-right: 15px;
     width: 30px;
     height: 30px;

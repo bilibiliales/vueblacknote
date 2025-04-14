@@ -4,6 +4,12 @@
     <div class="setting-item">
       <h3>备份管理</h3>
       <div class="setting-group">
+        <div class="checkbox-item">
+          <label for= "pause_save_state" class="setting-label">暂停自动保存</label>
+          <input type="checkbox" id="pause_save_state" v-model="$store.state.preferences.pause_save_state" class="checkbox" @change="$store.commit('saveState')">
+        </div>
+      </div>
+      <div class="setting-group">
         <label class="setting-label">导入备份</label>
         <div class="path-selector">
           <input type="file" class="default-btn" accept=".json" @change="handleFileImport" ref="fileInput"></input>
@@ -156,6 +162,37 @@ export default {
   .path-input {
   flex: 1;
   margin-right: 10px;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+  }
+  .checkbox {
+    width: 40px;
+    height: 20px;
+    appearance: none;
+    background-color: #bfbfbf;
+    border-radius: 20px;
+    position: relative;
+    transition: all 0.4s;
+  }
+  .checkbox::before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+  }
+  .checkbox:checked::before {
+    transform: translateX(20px);
+  }
+  .checkbox:checked {
+    background-color: #2196f3;
   }
    
   .action-buttons {

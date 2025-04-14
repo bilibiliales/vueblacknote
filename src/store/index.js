@@ -23,6 +23,7 @@ const store =new Vuex.Store({
       remove_force: false,
       enable_markdown: true,
       enable_search: true,
+      pause_save_state: false,
     },
     //标签参数
     tags: [
@@ -112,6 +113,9 @@ const store =new Vuex.Store({
     },
     //设置本地保存的state数据
     saveState(state) {
+      if(pause_save_state){
+        return;//取消自动保存
+      }
       localStorage.setItem(state_key, JSON.stringify({
         preferences: state.preferences,
         tags: state.tags,

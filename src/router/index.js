@@ -11,15 +11,6 @@ import root from '@/views/root'
 import empty from '@/views/empty'
 import edit from '@/views/edit.vue'
 
-//偏好设置组件（已弃用）
-/*
-import preferences from '@/views/set/preferences'
-import basic from '@/views/set/basic'
-import advance from '@/views/set/advance'
-import tags from '@/views/set/tags'
-import backup from '@/views/set/backup'
-*/
-
 Vue.use(Router)
 
 export default new Router({
