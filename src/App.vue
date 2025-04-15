@@ -90,6 +90,8 @@
 
     <div class="icp-footer">
       <a href="https://beian.miit.gov.cn/" target="_blank">湘ICP备2025112469号-1</a>
+      <img src="./resource/备案图标.png" alt="湘公网安备43010202001893号" style="max-width: 16px; max-height: 16px;">
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=43010202001893" rel="noreferrer" target="_blank">湘公网安备43010202001893号</a>
     </div>
 
     <!-- 偏好设置模态窗口 -->
