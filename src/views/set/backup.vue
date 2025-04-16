@@ -36,9 +36,17 @@ export default {
       alert("启用云备份需要登录账号，账号功能正在加紧开发中，敬请期待…………");
     },
     DownloadData() {
+      this.$store.commit('saveState');//首先尝试执行一次备份
       const n_id=Date.now().toString(16);
       const state_key = "blacknote_data";
-      const savedState = localStorage.getItem(state_key);
+      var savedState = localStorage.getItem(state_key);
+      if(savedState==null){
+        savedState=JSON.stringify({
+          preferences: this.$store.state.preferences,
+          tags: this.$store.state.tags,
+          notes: this.$store.state.notes
+        });
+      }
       const blob = new Blob([savedState], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
