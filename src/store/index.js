@@ -113,7 +113,7 @@ const store =new Vuex.Store({
     },
     //设置本地保存的state数据
     saveState(state) {
-      if(pause_save_state){
+      if(state.preferences.pause_save_state){
         return;//取消自动保存
       }
       localStorage.setItem(state_key, JSON.stringify({
