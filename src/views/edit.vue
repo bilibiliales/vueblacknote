@@ -13,10 +13,10 @@
           <div v-else-if="showPasswordModal" class="password-box">
             <h3>{{ isEncrypting ? '设置加密密码' : '请输入密码' }}</h3>
             <p v-if="decryptError" class="error">{{ decryptError }}</p>
-            <input 
-              type="password" 
-              v-model="inputPassword" 
-              placeholder="输入密码" 
+            <input
+              type="password"
+              v-model="inputPassword"
+              placeholder="输入密码"
               @keydown.enter="handlePassword"
             />
             <div class="modal-buttons">
@@ -36,19 +36,19 @@
           </span>
           <div class="controls">
             <button @click="toggleEncryption" class="encryption-btn">
-              <img :src="waitingEncrypt ? require('../resource/lock.png') : require('../resource/unlock.png')" 
-                   alt="加密状态" 
+              <img :src="waitingEncrypt ? require('../resource/lock.png') : require('../resource/unlock.png')"
+                   alt="加密状态"
                    class="lock-icon" />
             </button>
             <button @click="saveNote" v-if="isEdit" class="save-btn">保存</button>
             <button v-else @click="isEdit=true" class="edit-btn">编辑</button>
           </div>
         </div>
-  
+
         <!-- 标签展示与选择 -->
         <div class="tags-container">
-          <div 
-            v-for="tag in availableTags" 
+          <div
+            v-for="tag in availableTags"
             :key="tag.id"
             :class="['tag-item', { active: currentNote.tags.includes(tag.id) }]"
             :style="{ backgroundColor: currentNote.tags.includes(tag.id) ? tag.color : '#ccc' }"
@@ -57,7 +57,7 @@
           >
           </div>
         </div>
-  
+
         <!-- 编辑器 -->
         <div class="editor-container">
           <textarea
@@ -74,7 +74,7 @@
   </transition>
   </div>
 </template>
-  
+
   <script>
   import CryptoJS from 'crypto-js'
   import dayjs from 'dayjs';
@@ -84,7 +84,7 @@
 
   dayjs.extend(customParseFormat);
   dayjs.locale('zh-cn');
-  
+
   export default {
     components: {
       VueMarkdown
@@ -145,7 +145,7 @@
           return content
         }
       },
-  
+
       // 密码验证或设置
       handlePassword() {
         if (this.isEncrypting) {
@@ -163,7 +163,7 @@
             if (!saltedContent.startsWith("BLACKNOTE@")) {
               throw new Error('数据损坏')
             }
-            
+
             this.decryptedContent = saltedContent.slice(10)
             this.encryptionKey = key
             this.showPasswordModal = false
@@ -175,7 +175,7 @@
           }
         }
       },
-  
+
       cancelPassword() {
         if (this.pretendEdit) {
           this.$router.go(-1)
@@ -187,7 +187,7 @@
             this.$router.go(-1);
         }
       },
-  
+
       // 切换加密状态
       toggleEncryption() {
         if (this.waitingEncrypt) {
@@ -198,7 +198,7 @@
           this.showPasswordModal = true
         }
       },
-  
+
       // 切换标签状态
       toggleTag(tagId) {
         const index = this.currentNote.tags.indexOf(tagId)
@@ -209,7 +209,7 @@
         }
         this.$store.commit('saveState');
       },
-  
+
       // 保存笔记
       saveNote() {
         let content = this.decryptedContent
@@ -232,7 +232,7 @@
           }
           this.currentNote.content = content
           this.currentNote.updated_at = new Date().toISOString()
- 
+
           this.$store.commit('updateNote', this.currentNote)
           this.$store.commit('saveState');
           this.isEdit=false;
@@ -252,7 +252,7 @@
         this.isEncrypting = false;
         this.encryptionKey = null;
         this.inputPassword = ''
-        
+
         const newNote = this.$store.state.notes.find(n => n.n_id === newNId);
         if (!newNote) {
           if (this.$route.path !== `/undefined`){
@@ -263,7 +263,7 @@
         //防跳转回来报错
         this.currentNote = newNote;
         this.pretendEdit = this.currentNote.status === "remove";
-        
+
         if (this.currentNote.encrypted) {
           this.showPasswordModal = true;
         } else {
@@ -278,7 +278,7 @@
     }
   }
   </script>
-  
+
   <style scoped>
   .edit-container {
     margin: 20px auto;
@@ -299,7 +299,7 @@
     width: 100%;
     height: 500px;
   }
-  
+
   /* 标题与按钮 */
   .header {
     display: flex;
@@ -311,17 +311,17 @@
     margin: 5px;
     font-size: 24px;
   }
-  
+
   .controls {
     display: flex;
     gap: 10px;
   }
-  
+
   .lock-icon {
     width: 20px;
     height: 20px;
   }
-  
+
   .save-btn {
     background: #4CAF50;
     color: white;
@@ -368,7 +368,7 @@
   .encryption-btn:hover {
     filter: brightness(0.5);
   }
-  
+
   /* 编辑器 */
   .editor-container {
     flex: 1;
@@ -376,7 +376,7 @@
     margin-top: 15px;
     display: flex;
   }
-  
+
   .text-editor {
     height: 470px;
     width: 97%;
@@ -397,9 +397,33 @@
     border: 1px solid #ddd;
     border-radius: 6px;
     overflow-y: auto;
-    white-space: pre-wrap;
   }
-  
+
+  .text-view h1,
+  .text-view h2,
+  .text-view h3,
+  .text-view h4,
+  .text-view h5,
+  .text-view h6 {
+    margin: 0.5em 0;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .text-view p {
+    margin: 0.5em 0;
+  }
+
+  .text-view ul,
+  .text-view ol {
+    margin: 0.5em 0;
+    padding-left: 2em;
+  }
+
+  .text-view li {
+    margin: 0.3em 0;
+  }
+
   /* 密码模态框 */
   .password-modal {
     position: fixed;
@@ -413,7 +437,7 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   .password-box {
     background: rgba(255,255,255,0.6);
     padding: 50px;
@@ -463,13 +487,13 @@
   .btn-confirm:hover {
     background-color: #0069c0;
   }
-  
+
   .modal-buttons {
     display: flex;
     justify-content: space-between;
     margin-top: 15px;
   }
-  
+
   .error {
     color: red;
     font-size: 14px;
@@ -502,17 +526,17 @@
       transform: translateY(-100%);
       opacity: 0;
     }
-    
+
     .v-enter-to {
       transform: translateY(0);
       opacity: 1;
     }
-    
+
     .v-leave {
       transform: translateY(0);
       opacity: 1;
     }
-    
+
     .v-leave-to {
       transform: translateY(-100%);
       opacity: 0;

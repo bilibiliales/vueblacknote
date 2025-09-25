@@ -38,7 +38,7 @@
         <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空全部</span>
       </div>
     </div>
-  
+
     <!--卡片视图-->
     <div v-else key="card" class="card-views">
       <div v-for="note in filteredNotes" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="card-note">
@@ -71,15 +71,15 @@
     </transition>
   </div>
   </template>
-  
+
   <script>
   import dayjs from 'dayjs';
   import 'dayjs/locale/zh-cn';
   import customParseFormat from 'dayjs/plugin/customParseFormat';
-  
+
   dayjs.extend(customParseFormat);
   dayjs.locale('zh-cn');
-  
+
   export default {
     name: 'MainView',
     props: {
@@ -129,25 +129,10 @@
           }
         }
       },
-      createNewTask() {
-        const n_id=Date.now().toString(16) + Math.floor(0x10000 + Math.random() * 0xf0000).toString(16).substring(1);
-        const newNote = {
-          n_id: n_id,
-          title: '新建任务',
-          content: '',
-          encrypted: false,
-          tags: [],
-          created_at: new Date().toISOString(),
-          status: 'remove',
-          id: Date.now().toString()
-        };
-        this.$store.commit('addNote', newNote);
-        this.$store.commit('saveState');
-      },
       removeAllTask() {
         //当前所有页面
-        const filters = note => 
-          note.status == 'remove' && 
+        const filters = note =>
+          note.status == 'remove' &&
           note.title.includes(this.appliedSearchText);
         const visibleNotes = this.filteredNotes;
         if (this.$store.state.preferences.remove_warning) {
@@ -175,17 +160,14 @@
         return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
       },
       transName() {
-        return this.isInitialLoad ? 'main-fade' : 
+        return this.isInitialLoad ? 'main-fade' :
               this.views === 1 ? 'slide-right' : 'slide-left';
       },
       filteredNotes() {
-        return this.$store.state.notes.filter(note => 
-          note.status == 'remove' && 
+        return this.$store.state.notes.filter(note =>
+          note.status == 'remove' &&
           note.title.includes(this.appliedSearchText)
         );
-      },
-      totalItems() {
-        return this.filteredNotes.length;
       },
     },
     watch: {
@@ -203,13 +185,13 @@
     },
   }
   </script>
-  
+
   <style scoped>
-  
+
   .list-views {
     padding: 20px;
   }
-  
+
   .list-note {
     display: flex;
     justify-content: space-between;
@@ -218,40 +200,38 @@
     margin-bottom: 10px;
     border-radius: 8px;
     box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
-    translate: all 0.3s;
+    transition: all 0.3s;
   }
-  
+
   .list-left {
     text-align: center;
     width: 100px;
   }
-  
+
   .list-left h4 {
     margin: 0;
     font-size: 32px;
   }
-  
+
   .list-left span {
     display: block;
     font-size: 12px;
     color: #999;
     text-transform: uppercase;
   }
-  
+
   .list-middle {
     flex: 1;
     padding: 0 20px;
   }
-  
-  
-  
+
   .card-views {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     padding: 20px;
   }
-  
+
   .card-note {
     display: block;
     text-align: center;
@@ -260,16 +240,16 @@
     padding: 15px;
     border-radius: 8px;
     box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
-    translate: all 0.3s;
+    transition: all 0.3s;
     flex: 1 0 calc(33.333% - 20px);
     box-sizing: border-box;
   }
-  
+
   .card-note h4 {
     margin: 0;
     font-size: 20px;
   }
-  
+
   .card-note-footer {
     width: 100%;
     display: flex;
@@ -279,16 +259,16 @@
     margin-bottom: 10px;
     border-radius: 8px;
     box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
-    translate: all 0.3s;
+    transition: all 0.3s;
   }
-  
-  
+
+
   .time {
     display: block;
     font-size: 14px;
     margin-bottom: 4px;
   }
-  
+
   .tag-color {
     display: inline-block;
     width: 15px;
@@ -297,7 +277,7 @@
     margin-right: 5px;
     margin-bottom: 5px;
   }
-  
+
   .title-input {
     border: none;
     background: transparent;
@@ -307,7 +287,7 @@
     width: 30%;
     margin-bottom: 10px;
   }
-  
+
   .card-title-input {
     border: none;
     background: transparent;
@@ -318,32 +298,32 @@
     width: 86%;
     margin-bottom: 10px;
   }
-  
+
   .list-right {
     display: flex;
     align-items: center;
     gap: 15px;
   }
-  
+
   .encrypted {
     width: 16px;
     height: 16px;
     display: flex;
     align-items: center;
   }
-  
+
   .lock-icon {
     width: 16px;
     height: 16px;
     opacity: 0.7;
   }
-  
+
   .card-lock-icon {
     width: 16px;
     height: 16px;
     opacity: 0.7;
   }
-  
+
   .edit-button {
     padding: 8px 20px;
     border-radius: 8px;
@@ -359,7 +339,7 @@
   .edit-button:hover {
     background-color: #b8524b;
   }
-  
+
   .status-select {
     padding: 10px 20px;
     border-radius: 8px;
@@ -369,7 +349,7 @@
     appearance: none;
     min-width: 80px;
   }
-  
+
   .footer {
     text-align: center;
     padding: 4px;
@@ -381,7 +361,7 @@
     padding: 4px;
   }
 
-  
+
   .add-task {
     text-align: center;
     cursor: pointer;
@@ -391,7 +371,7 @@
     font-size: 16px;
     transition: all 0.3s;
   }
-  
+
   .add-task:hover {
     background: rgba(128,128,128,0.1);
   }
@@ -428,7 +408,7 @@
   .slide-right-leave-active {
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1);
   }
-  
+
   .slide-left-enter {
     opacity: 0;
     transform: translateX(20px);
@@ -437,7 +417,7 @@
     opacity: 0;
     transform: translateX(-20px);
   }
-  
+
   .slide-right-enter {
     opacity: 0;
     transform: translateX(-20px);

@@ -19,7 +19,7 @@
           <!-- 动态加载设置项 -->
           <component :is="currentTab"></component>
           <div class="footer">
-            <a href="javascript:;" @click="pushRoot">1.0.6</a>
+            <a href="javascript:;" @click="pushRoot">1.0.8</a>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@
     }
   }
 </script>
-  
+
   <style scoped>
   .footer {
     position: fixed;
@@ -98,17 +98,17 @@
     align-items: center;
     transition: filter 0.2s;
   }
-  
+
   .point:hover {
     filter: brightness(0.9);
   }
-  
+
   #point2, #point3 {
-    background-color: #c9c9c9; 
+    background-color: #c9c9c9;
     border-color: #53a5fc;
     margin-left: 5px;
   }
-  
+
   .preferences-overlay {
     position: fixed;
     top: 0;
@@ -130,16 +130,16 @@
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
     background: rgba(255,255,255,0.6);
     backdrop-filter: blur(8px);
-    
+
   }
-  
+
   .preferences-nav {
     display: flex;
     padding: 16px;
     border-bottom: 1px solid #eee;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   }
-  
+
   .nav-item {
     padding: 10px 20px;
     margin-right: 12px;
@@ -151,7 +151,7 @@
     display: flex;
     align-items: center;
   }
-  
+
   .nav-item:hover {
     background: rgba(0, 0, 0, 0.05);
   }
@@ -160,7 +160,7 @@
     background: rgba(0, 0, 0, 0.1);
     color: #000000;
   }
-  
+
   .preferences-content {
     padding: 24px;
   }
@@ -175,17 +175,17 @@
     transform: translateY(-100%);
     opacity: 0;
   }
-  
+
   .v-enter-to {
     transform: translateY(0);
     opacity: 1;
   }
-  
+
   .v-leave {
     transform: translateY(0);
     opacity: 1;
   }
-  
+
   .v-leave-to {
     transform: translateY(-100%);
     opacity: 0;
