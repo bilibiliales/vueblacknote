@@ -15,7 +15,7 @@ if (!fs.existsSync(staticDir)) {
 
 // 使用中间件
 app.use(cors({
-  origin: "http://localhost:8080",
+  origin: "*",
 }));
 app.use(bodyParser());
 
@@ -55,7 +55,7 @@ const removeUserData = (user) => {
 };
 
 // 获取指定username的云备份信息
-router.post('/data', (ctx) => {
+router.post('/api/data', (ctx) => {
   const { user } = ctx.request.body;
 
   if (!user) {
@@ -92,7 +92,7 @@ router.post('/data', (ctx) => {
 });
 
 // 备份
-router.post('/backup', (ctx) => {
+router.post('/api/backup', (ctx) => {
   const { user, localData } = ctx.request.body;
 
   if (!user || localData === undefined) {
@@ -134,7 +134,7 @@ router.post('/backup', (ctx) => {
 });
 
 // 处理注销
-router.post('/delete', (ctx) => {
+router.post('/api/delete', (ctx) => {
   const { user } = ctx.request.body;
 
   if (!user) {
@@ -176,7 +176,7 @@ router.post('/delete', (ctx) => {
 });
 
 // 处理注册
-router.post('/register', (ctx) => {
+router.post('/api/register', (ctx) => {
   const { user, localData } = ctx.request.body;
 
   if (!user || localData === undefined) {
@@ -221,6 +221,6 @@ app
   .use(router.routes())
   .use(router.allowedMethods());
 
-app.listen(3456, () => {
+app.listen(3456, '0.0.0.0', () => {
   console.log("后端服务器启动成功！");
 });

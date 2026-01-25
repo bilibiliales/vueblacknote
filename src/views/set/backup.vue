@@ -209,7 +209,7 @@ export default {
     },
     async fetchCloudData(data) {
       return await this.request({
-        url: '/data',
+        url: '/api/data',
         method: 'post',
         data
       });
@@ -244,7 +244,7 @@ export default {
     },
     cloudRegister(data) {
       return this.request({
-        url: '/register',
+        url: '/api/register',
         method: 'post',
         data
       })
@@ -275,7 +275,7 @@ export default {
     },
     cloudUpload(data) {
       return this.request({
-        url: '/backup',
+        url: '/api/backup',
         method: 'post',
         data
       })
@@ -310,7 +310,7 @@ export default {
     },
     cloudDelete(data) {
       return this.request({
-        url: '/delete',
+        url: '/api/delete',
         method: 'post',
         data
       })
