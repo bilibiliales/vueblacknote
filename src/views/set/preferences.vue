@@ -19,7 +19,7 @@
           <!-- 动态加载设置项 -->
           <component :is="currentTab"></component>
           <div class="footer">
-            <a href="javascript:;" @click="pushRoot">1.0.8</a>
+            <a href="javascript:;" @click="pushRoot">1.0.9</a>
           </div>
         </div>
       </div>

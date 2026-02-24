@@ -10,9 +10,10 @@
         </div>
       </div>
       <div class="setting-group">
-        <label class="setting-label">导入备份</label>
+        <label class="setting-label">导入备份文件</label>
         <div class="path-selector">
-          <input type="file" class="default-btn" accept=".json" @change="handleFileImport" ref="fileInput">
+          <button class="primary-btn" @click="triggerFileInput">导入</button>
+          <input type="file" class="default-btn" accept=".json" @change="handleFileImport" ref="fileInput" style="display: none;">
         </div>
       </div>
       <div class="setting-group">
@@ -25,72 +26,30 @@
       <div class="setting-group">
         <label class="setting-label">云备份设置</label>
         <div v-if="hasLogin">
-          <button class="error-btn" @click.prevent="handleLogout">停用</button>
+          <button class="error-btn" @click.prevent="handleCloudSignOut">登出</button>
           <button class="save-btn" @click.prevent="handleCloudUpload">备份</button>
           <button class="primary-btn" @click.prevent="handleCloudImport(decryptedContent)">还原</button>
           <button class="default-btn" @click.prevent="handleCloudDelete">注销</button>
         </div>
-        <button class="save-btn" v-else @click.prevent="showLogin = true">启用</button>
+        <div v-else>
+          <button class="save-btn" @click.prevent="showLogin = true">登录</button>
+          <button class="primary-btn" @click.prevent="showRegister = true">注册</button>
+        </div>
       </div>
     </div>
-    <!-- 登录模态框 -->
+    <!-- 登录注册组件 -->
     <transition appear name="modal-fade">
       <div v-if="showLogin" class="password-modal" @click.self="cancelLogin">
         <div class="password-box">
-          <h3>登录账号以启用云服务</h3>
-          <p class="error">{{ errorText }}</p>
-          <input
-            type="text"
-            v-model="inputUser"
-            placeholder="输入用户名"
-            class="login-input"
-          />
-          <input
-            type="password"
-            v-model="inputPassword"
-            placeholder="输入密码"
-            class="login-input"
-          />
-          <div>
-            <a @click="showRegister = true; showLogin = false" class="link-text">
-              没有账号？立即注册
-            </a>
-          </div>
-          <div class="modal-actions">
-            <button @click="cancelLogin" class="btn-cancel">返回</button>
-            <button @click="handleLogin" class="btn-confirm">登录</button>
-          </div>
+          <AuthLogin @cancel="cancelLogin" @login-success="onLoginSuccess" />
         </div>
       </div>
     </transition>
 
-    <!-- 注册模态框 -->
     <transition appear name="modal-fade">
       <div v-if="showRegister" class="password-modal" @click.self="cancelRegister">
         <div class="password-box">
-          <h3>注册云服务账号</h3>
-          <p class="error">{{ errorText }}</p>
-          <input
-            type="text"
-            v-model="inputUser"
-            placeholder="设置用户名"
-            class="login-input"
-          />
-          <input
-            type="password"
-            v-model="inputPassword"
-            placeholder="设置密码"
-            class="login-input"
-          />
-          <div>
-            <a @click="showLogin = true; showRegister = false" class="link-text">
-              已有账号？去登录
-            </a>
-          </div>
-          <div class="modal-actions">
-            <button @click="cancelRegister" class="btn-cancel">返回</button>
-            <button @click="handleRegister" class="btn-confirm">注册</button>
-          </div>
+          <AuthRegister @cancel="cancelRegister" @register-success="onRegisterSuccess" />
         </div>
       </div>
     </transition>
@@ -98,12 +57,14 @@
 </template>
 <script>
 import CryptoJS from 'crypto-js'
-import axios from 'axios'
+import AuthLogin from '@/components/AuthLogin.vue'
+import AuthRegister from '@/components/AuthRegister.vue'
+import supabase, { signInWithUsername, signUpWithUsername, getCurrentUser, onAuthStateChange } from '@/utils/supabase'
 
 export default {
+  components: { AuthLogin, AuthRegister },
   data() {
     return {
-      serveUrl: 'https://vueblacknote.zdjlales.xyz',
       state_key: 'blacknote_data',
       showLogin: false,
       showRegister: false,
@@ -114,284 +75,267 @@ export default {
       hasLogin: false,
       cloudData: '',
       errorText: '',
+      realtimeSub: null,
     }
   },
+  created() {
+    const user = getCurrentUser()
+    if (user) {
+      this.hasLogin = true
+      this.inputUser = user.email ? user.email.split('@')[0] : ''
+      // 不保存密码；需要用户在界面再次输入以进行解密/加密操作
+      this.inputPassword = ''
+      this.startRealtime()
+    }
+    // 监听 auth 变化
+    onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        const u = session.user
+        this.hasLogin = true
+        this.inputUser = u.email ? u.email.split('@')[0] : ''
+        this.startRealtime()
+      }
+      if (event === 'SIGNED_OUT') {
+        this.hasLogin = false
+        this.stopRealtime()
+      }
+    })
+  },
   methods: {
-    // 创建axios实例
-    async request(config) {
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+    // 被子组件触发的登录成功回调，payload 包含 username/password
+    async onLoginSuccess(payload) {
+      this.inputUser = payload.username
+      this.inputPassword = payload.password
+      this.hasLogin = true
+      this.showLogin = false
+      await this.fetchCloudDataSupabase()
+      this.startRealtime()
+    },
+    onRegisterSuccess(payload) {
+      // 注册后引导到登录（组件已经创建返回了用户名密码，可直接登录）
+      this.inputUser = payload.username
+      this.inputPassword = payload.password
+      this.showRegister = false
+      this.showLogin = true
+    },
+    cancelLogin() { this.showLogin = false; this.inputPassword = ''; this.errorText = '' },
+    cancelRegister() { this.showRegister = false; this.inputPassword = ''; this.errorText = '' },
+
+    // 使用 Supabase 存取备份数据
+    async fetchCloudDataSupabase() {
+      const user = getCurrentUser()
+      if (!user) return { ok: false, message: '未登录' }
+
+      const { data, error } = await supabase
+        .from('backups')
+        .select('data, updated_at')
+        .eq('user_id', user.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        return { ok: false, message: error.message }
+      }
+      if (!data) {
+        return { ok: false, message: '云端暂无备份' }
+      }
+      this.cloudData = data.data
       try {
-        const response = await axios({
-          baseURL: this.serveUrl,
-          timeout: 10000,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          ...config
-        });
-
-        return {
-          ok: true,
-          data: response.data,
-          message: response.data.message || '成功'
-        };
-      } catch (error) {
-        // HTTP 错误
-        if (error.response) {
-          return {
-            ok: false,
-            message: error.response.data.message || '请求失败'
-          };
-        }
-        // 如果是网络错误
-        return {
-          ok: false,
-          message: error.message || '网络请求失败'
-        };
+        this.importCloudData(this.cloudData)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, message: '解密失败: ' + e.message }
       }
     },
-    cancelLogin() {
-      this.showLogin = false;
-      this.inputUser = '';
-      this.inputPassword = '';
-      this.errorText = '';
-    },
-    cancelRegister() {
-      this.showRegister = false;
-      this.inputUser = '';
-      this.inputPassword = '';
-      this.errorText = '';
-    },
-    async handleLogin() {
-      if (!this.inputUser || !this.inputPassword) {
-        this.errorText = '用户名和密码不能为空';
-        return;
-      }
 
-      const response = await this.fetchCloudData({
-        user: this.inputUser
-      });
-
-      if (response.ok) {
-        try {
-          this.cloudData = response.data.data; // 后端返回 { data: "加密数据" }
-          this.importCloudData(this.cloudData);
-          this.hasLogin = true;
-          this.showLogin = false;
-          this.errorText = '';
-        } catch (error) {
-          this.errorText = '密码错误';
-        }
-      } else {
-        this.errorText = response.message;
-      }
+    async cloudSignOutSupabase() {
+      await supabase.auth.signOut({ scope: 'local' })
     },
+
+    async cloudUploadSupabase() {
+      const user = getCurrentUser()
+      if (!user) return { ok: false, message: '未登录' }
+      if (!this.inputPassword) return { ok: false, message: '请先输入用于加密的密码' }
+
+      const encryptionKey = CryptoJS.SHA256(this.inputPassword).toString()
+      const localData = this.getLocalData()
+      const base64Content = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(localData))
+      const encryptedData = CryptoJS.AES.encrypt(base64Content, encryptionKey).toString()
+
+      // upsert
+      const payload = { user_id: user.id, data: encryptedData }
+      const { error } = await supabase.from('backups').upsert(payload, { onConflict: 'user_id' })
+      if (error) return { ok: false, message: error.message }
+      return { ok: true }
+    },
+
+    async cloudDeleteSupabase() {
+      const user = getCurrentUser()
+      if (!user) return { ok: false, message: '未登录' }
+      const { error } = await supabase.from('backups').delete().eq('user_id', user.id)
+      if (error) return { ok: false, message: error.message }
+      return { ok: true }
+    },
+
+    async handleCloudSignOut() {
+      if (!confirm('确定要登出吗？登出后云备份数据不会被删除，但需要重新登录才能访问')) return
+      await this.cloudSignOutSupabase()
+      this.logout()
+    },
+
+    async handleCloudUpload() {
+      if (!this.hasLogin) { this.errorText = '请先登录'; return }
+      const res = await this.cloudUploadSupabase()
+      if (res.ok) alert('备份成功！')
+      else this.errorText = res.message || '备份失败'
+    },
+
+    async handleCloudDelete() {
+      if (!confirm('确定要注销账号吗？注销后云备份将不可找回')) return
+      const res = await this.cloudDeleteSupabase()
+      if (res.ok) alert('注销成功！')
+      else this.errorText = res.message || '注销失败'
+      // sign out
+      await supabase.auth.signOut()
+      this.logout()
+    },
+
     handleCloudImport(params) {
-      this.importBackupData(JSON.parse(params));
+      this.importBackupData(JSON.parse(params))
     },
+
     importCloudData(cloudData) {
       const key = CryptoJS.SHA256(this.inputPassword).toString()
       const bytes = CryptoJS.AES.decrypt(cloudData, key)
       const base64Content = bytes.toString(CryptoJS.enc.Utf8)
       if (!base64Content) throw new Error('解密失败')
-
       this.decryptedContent = this.decodeBase64(base64Content)
       this.encryptionKey = key
       this.errorText = ''
     },
-    // Base64解码
+
     decodeBase64(content) {
-      try {
-        return CryptoJS.enc.Base64.parse(content).toString(CryptoJS.enc.Utf8)
-      } catch (error) {
-        console.error('解码失败:', error)
-        return content
-      }
+      try { return CryptoJS.enc.Base64.parse(content).toString(CryptoJS.enc.Utf8) }
+      catch (error) { console.error('解码失败:', error); return content }
     },
-    async fetchCloudData(data) {
-      return await this.request({
-        url: '/api/data',
-        method: 'post',
-        data
-      });
-    },
+
     async handleRegister() {
-      if (!this.inputUser || !this.inputPassword) {
-        this.errorText = '用户名和密码不能为空';
-        return;
-      }
-
-      // 加密本地数据
-      const encryptionKey = CryptoJS.SHA256(this.inputPassword).toString();
-      const localData = this.getLocalData();
-      const encryptedData = CryptoJS.AES.encrypt(
-        JSON.stringify(localData),
-        encryptionKey
-      ).toString();
-
-      const response = await this.cloudRegister({
-        user: this.inputUser,
-        localData: encryptedData
-      });
-
-      if (response.ok) {
-        alert('注册成功！');
-        this.showRegister = false;
-        this.showLogin = true; // 注册后自动跳转到登录
-        this.errorText=''
-      } else {
-        this.errorText = response.message || '注册失败';
-      }
+      if (!this.inputUser || !this.inputPassword) { this.errorText = '用户名和密码不能为空'; return }
+      const { user, error } = await signUpWithUsername(this.inputUser, this.inputPassword)
+      if (error) { this.errorText = error.message; return }
+      alert('注册成功，请登录以完成同步')
+      this.showRegister = false
+      this.showLogin = true
     },
-    cloudRegister(data) {
-      return this.request({
-        url: '/api/register',
-        method: 'post',
-        data
-      })
-    },
-    async handleCloudUpload() {
-      if (!this.hasLogin) {
-        this.errorText = '请先登录';
-        return;
-      }
 
-      const encryptionKey = CryptoJS.SHA256(this.inputPassword).toString();
-      const localData = this.getLocalData();
-      const base64Content = CryptoJS.enc.Base64.stringify(
-        CryptoJS.enc.Utf8.parse(localData)
-      );
-      const encryptedData = CryptoJS.AES.encrypt(base64Content, encryptionKey).toString();
+    async handleLogin() {
+      if (!this.inputUser || !this.inputPassword) { this.errorText = '用户名和密码不能为空'; return }
+      const { user, error } = await signInWithUsername(this.inputUser, this.inputPassword)
+      if (error) { this.errorText = error.message; return }
+      // 登录成功后 fetch 数据
+      this.hasLogin = true
+      await this.fetchCloudDataSupabase()
+      this.showLogin = false
+      this.startRealtime()
+    },
 
-      const response = await this.cloudUpload({
-        user: this.inputUser,
-        localData: encryptedData
-      });
-
-      if (response.ok) {
-        alert('备份成功！');
-      } else {
-        this.errorText = response.message || '备份失败';
-      }
-    },
-    cloudUpload(data) {
-      return this.request({
-        url: '/api/backup',
-        method: 'post',
-        data
-      })
-    },
-    handleLogout() {
-      // 退出登录逻辑
-      if (confirm('确定要停用云服务吗？停用后需要重新登录')){
-        this.logout();
-      }
-    },
     logout() {
-      this.encryptionKey=''
-      this.decryptedContent=''
-      this.cloudData=''
-      this.errorText=''
-      this.hasLogin = false;
+      this.encryptionKey = ''
+      this.decryptedContent = ''
+      this.cloudData = ''
+      this.errorText = ''
+      this.hasLogin = false
+      this.stopRealtime()
     },
-    async handleCloudDelete() {
-      // 注销逻辑
-      if (confirm('确定要注销账号吗？注销后云备份将不可找回')) {
-        const response = await this.cloudDelete({
-          user: this.inputUser
-        });
 
-        if (response.ok) {
-          alert('注销成功！');
-        } else {
-          this.errorText = response.message || '注销失败';
-        }
-        this.logout();
-      }
-    },
-    cloudDelete(data) {
-      return this.request({
-        url: '/api/delete',
-        method: 'post',
-        data
-      })
-    },
     getLocalData() {
-      this.$store.commit('saveState');//首先尝试执行一次备份
-      let savedState = localStorage.getItem(this.state_key);
-      if(savedState == null) {
-        savedState = JSON.stringify({
-          preferences: this.$store.state.preferences,
-          tags: this.$store.state.tags,
-          notes: this.$store.state.notes
-        });
+      this.$store.commit('saveState')
+      let savedState = localStorage.getItem(this.state_key)
+      if (savedState == null) {
+        savedState = JSON.stringify({ preferences: this.$store.state.preferences, tags: this.$store.state.tags, notes: this.$store.state.notes })
       }
-      return savedState;
+      return savedState
     },
-    DownloadData() {
-      const savedState = this.getLocalData();
-      const blob = new Blob([savedState], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const n_id = Date.now().toString(16);
-      a.href = url;
-      a.download = this.state_key + n_id + '.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    },
-    importBackupData(json) {
-      this.validateBackup(json);
-      localStorage.setItem(this.state_key, JSON.stringify(json));
-      if (confirm("导入成功！需要立即刷新应用生效吗？")) {
-        window.location.reload();
-      } else {
-        this.$refs.fileInput.value = '';
-        alert("数据已保存到本地存储，如需生效请勿点击确定并立即刷新本窗口。");
-      }
-    },
-    async handleFileImport(event) {
-      const file = event.target.files[0];
-      if (!file) return;
 
+    DownloadData() {
+      const savedState = this.getLocalData()
+      const blob = new Blob([savedState], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const n_id = Date.now().toString(16)
+      a.href = url
+      a.download = this.state_key + n_id + '.json'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    },
+
+    importBackupData(json) {
+      this.validateBackup(json)
+      localStorage.setItem(this.state_key, JSON.stringify(json))
+      if (confirm('导入成功！需要立即刷新应用生效吗？')) window.location.reload()
+      else { this.$refs.fileInput.value = ''; alert('数据已保存到本地存储，如需生效请刷新页面。') }
+    },
+
+    async handleFileImport(event) {
+      const file = event.target.files[0]
+      if (!file) return
       try {
-        const json = await this.readFile(file);
-        this.importBackupData(json);
-      } catch (error) {
-        alert(`导入失败: ${error.message}`);
-        this.$refs.fileInput.value = '';
-      }
+        const json = await this.readFile(file)
+        this.importBackupData(json)
+      } catch (error) { alert(`导入失败: ${error.message}`); this.$refs.fileInput.value = '' }
     },
 
     readFile(file) {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+        const reader = new FileReader()
         reader.onload = e => {
-          try {
-            resolve(JSON.parse(e.target.result));
-          } catch (e) {
-            reject(new Error('无效的JSON格式'));
-          }
-        };
-        reader.onerror = () => reject(new Error('文件读取失败'));
-        reader.readAsText(file);
-      });
+          try { resolve(JSON.parse(e.target.result)) } catch (e) { reject(new Error('无效的JSON格式')) }
+        }
+        reader.onerror = () => reject(new Error('文件读取失败'))
+        reader.readAsText(file)
+      })
     },
 
     validateBackup(data) {
-      if (!data || typeof data !== 'object') {
-        throw new Error('无效的备份文件');
-      }
-      const requiredKeys = ['preferences', 'tags', 'notes'];
-      requiredKeys.forEach(key => {
-        if (!(key in data)) {
-          throw new Error(`缺少必要字段: ${key}`);
-        }
-      });
-      if (!Array.isArray(data.tags) || !Array.isArray(data.notes)) {
-        throw new Error('数据格式不正确');
-      }
+      if (!data || typeof data !== 'object') throw new Error('无效的备份文件')
+      const requiredKeys = ['preferences', 'tags', 'notes']
+      requiredKeys.forEach(key => { if (!(key in data)) throw new Error(`缺少必要字段: ${key}`) })
+      if (!Array.isArray(data.tags) || !Array.isArray(data.notes)) throw new Error('数据格式不正确')
     },
+
+    // realtime
+    startRealtime() {
+      const user = getCurrentUser()
+      if (!user) return
+      if (this.realtimeSub) return
+      this.realtimeSub = supabase
+        .from(`backups:user_id=eq.${user.id}`)
+        .on('UPDATE', payload => {
+          if (!this.$store.state.preferences.pause_save_state) {
+            const newData = payload.new.data
+            try {
+              // 尝试用当前密码解密并覆盖
+              this.importCloudData(newData)
+              const json = JSON.parse(this.decryptedContent)
+              localStorage.setItem(this.state_key, JSON.stringify(json))
+              // emit reload if needed
+              // window.location.reload()
+            } catch (e) { console.warn('实时同步解密失败') }
+          }
+        })
+        .subscribe()
+    },
+
+    stopRealtime() {
+      if (this.realtimeSub) {
+        supabase.removeSubscription(this.realtimeSub)
+        this.realtimeSub = null
+      }
+    }
   }
 }
 </script>

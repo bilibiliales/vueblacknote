@@ -9,18 +9,20 @@
             <input type="checkbox" id="dark" v-model="$store.state.preferences.dark" @click="changeDark" @change="$store.commit('saveState')" class="dark-checkbox">
           </div>
         </div>
-   
+
         <div class="setting-group">
           <label class="setting-label">主题颜色：</label>
           <input type="color" style="margin-left: 10px;" v-model="$store.state.preferences.item_color" @change="$store.commit('saveState')">
         </div>
-   
+
         <div class="setting-group">
           <label class="setting-label">设置背景图片：</label>
           <div class="path-selector">
             <input type="number" min="0" max="6" step="1" v-model="$store.state.preferences.background_img" id="background_img" class="default-btn"><!--实测要按钮事件才触发-->
             <button class="default-btn" @click="changePath">设定背景</button>
             <button class="remove-btn" @click="removePath">清空背景</button>
+            <button class="primary-btn" @click="triggerFileInput" v-if="isLogged">上传背景</button>
+            <input v-if="isLogged" ref="fileInput" type="file" accept="image/*" @change="uploadBackground" class="default-btn" style="display: none;" />
           </div>
         </div>
         <!-- 默认视图设置 -->
@@ -49,13 +51,24 @@
       </div>
     </div>
   </template>
-   
+
 <script>
+import supabase, { getCurrentUser } from '@/utils/supabase'
+
 export default {
   data() {
-    return {}
+    return {
+      isLogged: false
+    }
+  },
+  created() {
+    const u = getCurrentUser()
+    if (u) this.isLogged = true
   },
   methods: {
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
     changePath() {
         var img_num = document.getElementById("background_img").value;
         if(img_num==0||img_num==6){
@@ -104,15 +117,32 @@ export default {
       this.$store.state.preferences.default_view=Number(value);
       this.$store.commit('saveState');
     }
+    ,
+    async uploadBackground(event) {
+      const file = event.target.files[0]
+      if (!file) return
+      const user = getCurrentUser()
+      if (!user) { alert('请先登录'); return }
+      const fileExt = file.name.split('.').pop()
+      const filePath = `backgrounds/${user.id}.${fileExt}`
+      const { error } = await supabase.storage.from('backgrounds').upload(filePath, file, { upsert: true })
+      if (error) { alert('上传失败: ' + error.message); return }
+      const { publicURL, error: urlErr } = supabase.storage.from('backgrounds').getPublicUrl(filePath)
+      if (urlErr) { alert('获取URL失败: ' + urlErr.message); return }
+      // 存储到 preferences.background
+      this.$store.state.preferences.background = publicURL
+      this.$store.commit('saveState')
+      alert('上传成功，背景已更新')
+    }
   }
 }
 </script>
-   
+
   <style scoped>
   .basic-settings {
     padding: 20px;
   }
-   
+
   .setting-item {
     margin-bottom: 30px;
     padding: 15px;
@@ -120,35 +150,35 @@ export default {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-   
+
   .setting-item h3 {
     color: #333;
     margin-bottom: 15px;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
   }
-   
+
   .setting-group {
     display: flex;
     align-items: center;
     margin: 12px 0;
     padding-bottom: 4px;
   }
-   
+
   .setting-label {
     width: 120px;
     color: #666;
     font-size: 14px;
     height: 20px;
   }
-   
+
   .custom-select {
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
     width: 200px;
   }
-   
+
   .custom-input {
     padding: 8px;
     border: 1px solid #ddd;
@@ -156,59 +186,77 @@ export default {
     width: 180px;
     margin-right: 10px;
   }
-   
+
   .unit {
     color: #999;
     font-size: 14px;
   }
-   
+
   .path-selector {
     display: flex;
     align-items: center;
   }
-   
+
   .path-input {
     flex: 1;
     margin-right: 10px;
   }
-   
+
   .action-buttons {
     margin-top: 25px;
     text-align: center;
   }
-   
-  .save-btn, .default-btn {
-    padding: 10px 25px;
+
+  .save-btn, .default-btn, .primary-btn, .remove-btn {
+    padding: 10px 20px;
     margin: 0 10px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s;
   }
-   
+
   .save-btn {
     background: #5fc153;
     color: white;
   }
-   
+
   .save-btn:hover {
     background: #4fa044;
   }
-   
+
+  .primary-btn {
+    background: #057ada;
+    color: white;
+  }
+
+  .primary-btn:hover {
+    background: #0e67c1;
+  }
+
+  .remove-btn {
+    background-color: #ed695f;
+    color: white;
+  }
+
+  .remove-btn:hover {
+    background: #de493b;
+  }
+
   .default-btn {
     background: #f0f0f0;
     color: #666;
   }
-   
+
   .default-btn:hover {
     background: #e0e0e0;
   }
-   
+
   .radio-group {
     display: flex;
     gap: 20px;
   }
-   
+
   .radio-label {
     margin-left: 5px;
     color: #666;
@@ -268,18 +316,5 @@ export default {
   }
   .checkbox:checked {
     background-color: #2196f3;
-  }
-  .remove-btn {
-    padding: 10px 25px;
-    margin: 0 10px;
-    border: none;
-    border-radius: 6px;
-    transition: all 0.3s;
-    background-color: #ed695f;
-    color: white;
-  }
-   
-  .remove-btn:hover {
-    background: #de493b;
   }
   </style>
