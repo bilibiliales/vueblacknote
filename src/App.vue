@@ -1,5 +1,5 @@
 <template>
-  <div id="app" :style="{backgroundImage: 'url('+backgroundImgUrl+')'}">
+  <div id="app" :style="{ backgroundImage: backgroundImgUrl ? 'url('+backgroundImgUrl+')' : 'none', backgroundColor: backgroundColor }">
     <!-- 左侧菜单栏 -->
     <div id="left-menu" :style="{ backgroundColor: leftMenuBgColor }">
       <div class="points">
@@ -58,7 +58,7 @@
           <img src="./resource/取消保存.png" alt="取消保存">
         </div>
       </div>
-      
+
       <div class="view-controls">
         <button class="view-btn":class="{ 'active': views === 1 }" @click="views = 1">
           <img src="./resource/列表.png" alt="列表视图">
@@ -67,7 +67,7 @@
           <img src="./resource/卡片.png" alt="卡片视图">
         </button>
       </div>
-      
+
       <div class="toolbar-controls">
         <button class="toolbar-btn" @click="openPreferences('backup')">
           <img src="./resource/导出.png" alt="导出">
@@ -95,18 +95,20 @@
     </div>
 
     <!-- 偏好设置模态窗口 -->
-    <Preferences 
-      :isVisible="showPreferences" 
+    <Preferences
+      :isVisible="showPreferences"
       :currentTab="currentTab"
-      :views="views" 
+      :views="views"
       @tab-change="currentTab = $event"
-      @close="showPreferences = false" 
+      @close="showPreferences = false"
     />
   </div>
 </template>
 
 <script>
 import Preferences from '@/views/set/preferences.vue'
+import supabase, { getCurrentUser } from '@/utils/supabase'
+
 export default {
   name: 'App',
   components: {
@@ -119,7 +121,8 @@ export default {
       currentTitle: '',
       showPreferences: false,
       currentTab: 'basic',
-      backgroundImgUrl: ""
+      backgroundImgUrl: "",
+      backgroundColor: this.$store.state.preferences.dark ? '#1f1f1f' : '#ffffff'
     };
   },
   created() {
@@ -129,31 +132,55 @@ export default {
   },
   methods: {
     // 背景图片切换
-    changeBackground() {
-      if(this.$store.state.preferences.background_img===0){
-        if(this.$store.state.preferences.dark) {
-          this.backgroundImgUrl = '';
-        }else{
-          this.backgroundImgUrl = '';
+    async changeBackground() {
+      try {
+        const pref = this.$store.state.preferences
+        // default to color when no background selected
+        if (!pref.background) {
+          this.backgroundImgUrl = ''
+          this.backgroundColor = pref.dark ? '#1f1f1f' : '#ffffff'
+          return
         }
-      }
-      if(this.$store.state.preferences.background_img===1){
-        this.backgroundImgUrl = require('./resource/1.jpg');
-      }
-      if(this.$store.state.preferences.background_img===2){
-        this.backgroundImgUrl = require('./resource/2.jpg');
-      }
-      if(this.$store.state.preferences.background_img===3){
-        this.backgroundImgUrl = require('./resource/3.jpg');
-      }
-      if(this.$store.state.preferences.background_img===4){
-        this.backgroundImgUrl = require('./resource/4.jpg');
-      }
-      if(this.$store.state.preferences.background_img===5){
-        this.backgroundImgUrl = require('./resource/5.jpg');
-      }
-      if(this.$store.state.preferences.background_img===6){
-        this.backgroundImgUrl = require('./resource/6.jpg')
+        // preset
+        if (pref.background.startsWith('preset:')) {
+          const name = pref.background.replace('preset:', '')
+          // public bucket
+          const { publicURL, error } = supabase.storage.from('public-backgrounds').getPublicUrl(name)
+          if (!error && publicURL) {
+            this.backgroundImgUrl = publicURL
+            this.backgroundColor = ''
+            return
+          }
+        }
+        // custom uploaded background
+        if (pref.background === 'custom') {
+          // 如果已保存了一个 signed URL（短期），优先使用；否则为当前用户生成一个新的 signed URL
+          if (pref.background_url) {
+            this.backgroundImgUrl = pref.background_url
+            this.backgroundColor = ''
+            return
+          }
+          const user = getCurrentUser()
+          if (!user) {
+            this.backgroundImgUrl = ''
+            this.backgroundColor = pref.dark ? '#1f1f1f' : '#ffffff'
+            return
+          }
+          const filePath = `${user.id}.png`
+          const { signedURL, error } = await supabase.storage.from('backgrounds').createSignedUrl(filePath, 60 * 60)
+          if (!error && signedURL) {
+            this.backgroundImgUrl = signedURL.signedUrl || signedURL
+            this.backgroundColor = ''
+            return
+          }
+        }
+        // fallback to color
+        this.backgroundImgUrl = ''
+        this.backgroundColor = pref.dark ? '#1f1f1f' : '#ffffff'
+      } catch (e) {
+        console.warn('changeBackground error', e)
+        this.backgroundImgUrl = ''
+        this.backgroundColor = this.$store.state.preferences.dark ? '#1f1f1f' : '#ffffff'
       }
     },
     // 跳转默认页面
@@ -167,9 +194,9 @@ export default {
     // 窗口控制方法
     closeWindow() { window.close() },
     reloadWindow() { location.reload() },
-    
+
     toggleFullScreen() {
-      !document.fullscreenElement 
+      !document.fullscreenElement
         ? document.documentElement.requestFullscreen()
         : document.exitFullscreen()
     },
@@ -205,10 +232,10 @@ export default {
     '$route'(to, from) {
       this.updateCurrentTitle()
     },
-    //监测背景序号更改
-    '$store.state.preferences.background_img'(newVal) {
-      this.changeBackground()
-    }
+    // 监测背景配置更改
+    '$store.state.preferences.background'(newVal) { this.changeBackground() },
+    '$store.state.preferences.background_url'(newVal) { this.changeBackground() },
+    '$store.state.preferences.dark'(newVal) { this.changeBackground() }
   },
   mounted() {
     this.updateCurrentTitle()
@@ -329,21 +356,21 @@ export default {
     margin-left: 5px;
     transition: filter 0.2s;
   }
-  
+
   .point:hover {
     filter: brightness(0.9);
   }
-  
+
   #point1 {
     background-color: #ed695f;
     border-color: #de493b;
   }
-  
+
   #point2 {
-    background-color: #f4bd4f; 
+    background-color: #f4bd4f;
     border-color: #e9ae3d;
   }
-  
+
   #point3 {
     background-color: #5fc153;
     border-color: #43af2f;
@@ -380,7 +407,7 @@ export default {
     color: #aaa;
     transition: all 0.2s;
   }
-  
+
   .nav-btn:hover {
     color: #424245;
   }
@@ -399,7 +426,7 @@ export default {
   .nav-controls {
     display: flex;
   }
-  
+
   .nav-controls img, .view-controls img, .toolbar-controls img {
     margin-right: 15px;
     width: 30px;

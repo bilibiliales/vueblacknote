@@ -41,6 +41,14 @@ export default {
 </script>
 
 <style scoped>
+.auth-box {
+  width: 100%;
+  max-width: 400px; /* 限制最大宽度 */
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
 .backup-settings {
   padding: 20px;
 }
@@ -276,6 +284,7 @@ export default {
 /* 输入框焦点动画 */
 .login-input {
   width: 60%;
+  max-width: 270px;
   padding: 12px 15px;
   border: 1px solid #ddd;
   border-radius: 6px;

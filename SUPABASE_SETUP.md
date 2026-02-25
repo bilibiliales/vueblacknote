@@ -61,6 +61,94 @@ create policy "profiles_owner" on public.profiles
   with check (auth.uid() = id);
 ```
 
+## Storage (RLS 示例：私有 backgrounds 存储桶)
+
+下面示例为私有 `backgrounds` 桶设置的策略（要求文件名为 auth.uid()::text || '.png'）：
+
+```sql
+create policy "Users can upload own background"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'backgrounds'
+  and name = auth.uid()::text || '.png'
+);
+
+create policy "Users can view own background"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'backgrounds'
+  and name = auth.uid()::text || '.png'
+);
+
+create policy "Users can update own background"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'backgrounds'
+  and name = auth.uid()::text || '.png'
+)
+with check (
+  bucket_id = 'backgrounds'
+  and name = auth.uid()::text || '.png'
+);
+
+create policy "Users can delete own background"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'backgrounds'
+  and name = auth.uid()::text || '.png'
+);
+
+-- 如果你还要支持头像上传，建议创建一个私有桶 `avatars`，并使用与 `backgrounds` 相同的策略，强制文件名为 `<auth.uid()>.png`：
+
+create policy "Users can upload own avatar"
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'avatars'
+    and name = auth.uid()::text || '.png'
+  );
+
+create policy "Users can view own avatar"
+  on storage.objects
+  for select
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and name = auth.uid()::text || '.png'
+  );
+
+create policy "Users can update own avatar"
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and name = auth.uid()::text || '.png'
+  )
+  with check (
+    bucket_id = 'avatars'
+    and name = auth.uid()::text || '.png'
+  );
+
+create policy "Users can delete own avatar"
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and name = auth.uid()::text || '.png'
+  );
+```
+
 ## Supabase Storage Public URL
 
 如果存储桶为私有，请使用 Supabase 存储的 Signed URL 或在服务端生成访问链接。如果为公共存储桶，上述 `getPublicUrl` 将返回可直接使用的 URL。
@@ -68,3 +156,11 @@ create policy "profiles_owner" on public.profiles
 ---
 
 把上述 SQL 在 Supabase SQL Editor 中执行，并在 Supabase 控制台中创建 `backgrounds` 存储桶。确保在项目中的 `src/utils/supabase.js` 填入正确的 URL 与 ANON KEY。
+
+## realtime
+
+-- 为备份表建立发布（若需要）
+create publication realtime_backups for table public.backups;
+
+-- 如果希望对 profiles 也实时订阅，可另建
+create publication realtime_profiles for table public.profiles;

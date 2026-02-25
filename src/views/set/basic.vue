@@ -18,10 +18,14 @@
         <div class="setting-group">
           <label class="setting-label">设置背景图片：</label>
           <div class="path-selector">
-            <input type="number" min="0" max="6" step="1" v-model="$store.state.preferences.background_img" id="background_img" class="default-btn"><!--实测要按钮事件才触发-->
-            <button class="default-btn" @click="changePath">设定背景</button>
+            <select v-model="selectedPreset" class="custom-select">
+              <option value="">纯色背景</option>
+              <option v-for="p in presets" :key="p" :value="p">{{ p }}</option>
+              <option v-if="isLogged" value="custom">自定义背景</option>
+            </select>
+            <button class="primary-btn" @click="applyPreset">应用背景</button>
             <button class="remove-btn" @click="removePath">清空背景</button>
-            <button class="primary-btn" @click="triggerFileInput" v-if="isLogged">上传背景</button>
+            <button class="save-btn" @click="triggerFileInput" v-if="isLogged">上传背景</button>
             <input v-if="isLogged" ref="fileInput" type="file" accept="image/*" @change="uploadBackground" class="default-btn" style="display: none;" />
           </div>
         </div>
@@ -58,81 +62,118 @@ import supabase, { getCurrentUser } from '@/utils/supabase'
 export default {
   data() {
     return {
-      isLogged: false
+      isLogged: false,
+      presets: [],
+      selectedPreset: '',
+      hasCustom: false
     }
   },
-  created() {
+  async created() {
     const u = getCurrentUser()
-    if (u) this.isLogged = true
+    this.isLogged = !!u
+    // load presets from public_backgrounds bucket
+    try {
+      const { data, error } = await supabase.storage.from('public-backgrounds').list('', { limit: 100 })
+      if (!error && Array.isArray(data)) this.presets = data.map(i => i.name)
+      // reflect current background in selectedPreset
+      const pref = this.$store.state.preferences.background || ''
+      if (pref === 'custom') this.selectedPreset = 'custom'
+      else if (pref.startsWith && pref.startsWith('preset:')) this.selectedPreset = pref.replace('preset:', '')
+      else this.selectedPreset = ''
+      // detect whether user already has uploaded custom background
+      if (this.isLogged) {
+        try {
+          const user = getCurrentUser()
+          const listRes = await supabase.storage.from('backgrounds').list('', { limit: 100 })
+          if (listRes && Array.isArray(listRes.data)) {
+            this.hasCustom = listRes.data.some(i => i.name === `${user.id}.png`)
+          }
+          // if preferences already indicate a stored background_url, treat as hasCustom
+          if (this.$store.state.preferences.background_url) this.hasCustom = true
+        } catch (e) { console.warn('check custom background failed', e) }
+      }
+    } catch (e) { console.warn('无法获取预设背景', e) }
   },
   methods: {
-    triggerFileInput() {
-      this.$refs.fileInput.click();
-    },
-    changePath() {
-        var img_num = document.getElementById("background_img").value;
-        if(img_num==0||img_num==6){
-          if(this.$store.state.preferences.dark){
-            this.$store.state.preferences.background_img=6;
-          }else{
-            this.$store.state.preferences.background_img=0;
-          }
-        }
-        if(img_num==1){
-            this.$store.state.preferences.background_img=1;
-        }
-        if(img_num==2){
-            this.$store.state.preferences.background_img=2;
-        }
-        if(img_num==3){
-            this.$store.state.preferences.background_img=3;
-        }
-        if(img_num==4){
-            this.$store.state.preferences.background_img=4;
-        }
-        if(img_num==5){
-            this.$store.state.preferences.background_img=5;
-        }
-        this.$store.commit('saveState')
-    },
+    triggerFileInput() { this.$refs.fileInput.click(); },
     changeDark() {
-        var img_num = document.getElementById("background_img").value;
-        if(img_num==0||img_num==6){
-          if(this.$store.state.preferences.dark){
-            this.$store.state.preferences.background_img=0;
-          }else{
-            this.$store.state.preferences.background_img=6;
-          }
-        }
-    },
-    removePath() {
-      if(this.$store.state.preferences.dark){
-        this.$store.state.preferences.background_img=6;
-      }else{
-         this.$store.state.preferences.background_img=0;
+      // 当当前为纯色背景（background === ''）时，切换深色/浅色后由 App.vue 的 changeBackground 处理颜色显示。
+      if (!this.$store.state.preferences.background || this.$store.state.preferences.background === '') {
+        // just save state; App.vue will pick color based on preferences.dark
+        this.$store.commit('saveState')
+      } else {
+        // 如果当前是预设或自定义背景，切换深色不影响背景图片，只保存首选项
+        this.$store.commit('saveState')
       }
-      this.$store.commit('saveState')
     },
     updateDefaultView(value) {
       this.$store.state.preferences.default_view=Number(value);
       this.$store.commit('saveState');
     }
     ,
+    async applyPreset() {
+      if (!this.selectedPreset) {
+        this.$store.state.preferences.background = ''
+        this.$store.state.preferences.background_url = ''
+      } else if (this.selectedPreset === 'custom') {
+        if (!this.hasCustom) {
+          alert('当前没有自定义背景，请先上传自定义背景')
+          return
+        }
+        this.$store.state.preferences.background = 'custom'
+        // background_url already set at upload or will be generated by App.vue
+      } else {
+        this.$store.state.preferences.background = `preset:${this.selectedPreset}`
+        this.$store.state.preferences.background_url = ''
+      }
+      this.$store.commit('saveState')
+    },
+
     async uploadBackground(event) {
       const file = event.target.files[0]
       if (!file) return
       const user = getCurrentUser()
       if (!user) { alert('请先登录'); return }
-      const fileExt = file.name.split('.').pop()
-      const filePath = `backgrounds/${user.id}.${fileExt}`
+      // RLS 要求文件名为 <uid>.png
+      const filePath = `${user.id}.png`
       const { error } = await supabase.storage.from('backgrounds').upload(filePath, file, { upsert: true })
       if (error) { alert('上传失败: ' + error.message); return }
-      const { publicURL, error: urlErr } = supabase.storage.from('backgrounds').getPublicUrl(filePath)
-      if (urlErr) { alert('获取URL失败: ' + urlErr.message); return }
-      // 存储到 preferences.background
-      this.$store.state.preferences.background = publicURL
+      // 为私有 bucket 创建带时效的签名 URL用于预览或保存
+      const { signedURL, error: signErr } = await supabase.storage.from('backgrounds').createSignedUrl(filePath, 60 * 60)
+      if (signErr) { alert('获取URL失败: ' + signErr.message); return }
+      // 标记为已有自定义，但不自动应用为当前背景——需点击【应用背景】生效
+      this.hasCustom = true
+      this.selectedPreset = 'custom'
+      // 存储 signed URL 以便短期内展示
+      this.$store.state.preferences.background_url = signedURL.signedUrl || signedURL
       this.$store.commit('saveState')
-      alert('上传成功，背景已更新')
+      // 将用户背景信息更新到 profiles 表
+      const payload = { id: user.id, avatar_url: user.avatar_url, background_url: signedURL.signedUrl || signedURL, updated_at: new Date().toISOString() }
+      await supabase.from('profiles').upsert(payload)
+      alert('上传成功，请点击“应用背景”以使其生效')
+    },
+
+    // 删除背景：将背景颜色置为深/浅色；若是自定义背景并已登录则删除 bucket 中对应图片
+    async removePath() {
+      const wasCustom = this.$store.state.preferences.background === 'custom' || this.selectedPreset === 'custom'
+      if (wasCustom && this.isLogged) {
+        const user = getCurrentUser()
+        try {
+          await supabase.storage.from('backgrounds').remove([`${user.id}.png`])
+          // 将用户背景信息更新到 profiles 表
+          const payload = { id: user.id, avatar_url: user.avatar_url, background_url: null, updated_at: new Date().toISOString() }
+          await supabase.from('profiles').upsert(payload)
+        } catch (e) { console.warn('删除自定义背景失败', e) }
+        this.hasCustom = false
+        if (this.selectedPreset === 'custom') {
+          this.selectedPreset = ''
+        }
+        alert('背景已清除，已切换到纯色背景')
+      }
+      // 设置为色块背景（纯色）
+      this.$store.state.preferences.background = ''
+      this.$store.state.preferences.background_url = ''
+      this.$store.commit('saveState')
     }
   }
 }
@@ -176,7 +217,7 @@ export default {
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
-    width: 200px;
+    width: 120px;
   }
 
   .custom-input {
@@ -244,12 +285,12 @@ export default {
   }
 
   .default-btn {
-    background: #f0f0f0;
-    color: #666;
+    background: rgba(0, 0, 0, 0.1);
+    color: white;
   }
 
   .default-btn:hover {
-    background: #e0e0e0;
+    background: rgba(0, 0, 0, 0.2);
   }
 
   .radio-group {

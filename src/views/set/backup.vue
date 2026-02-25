@@ -26,15 +26,15 @@
       <div class="setting-group">
         <label class="setting-label">云备份设置</label>
         <div v-if="hasLogin">
-          <button class="error-btn" @click.prevent="handleCloudSignOut">登出</button>
           <button class="save-btn" @click.prevent="handleCloudUpload">备份</button>
-          <button class="primary-btn" @click.prevent="handleCloudImport(decryptedContent)">还原</button>
-          <button class="default-btn" @click.prevent="handleCloudDelete">注销</button>
+          <button class="primary-btn" @click.prevent="handleCloudImport">还原</button>
         </div>
         <div v-else>
-          <button class="save-btn" @click.prevent="showLogin = true">登录</button>
-          <button class="primary-btn" @click.prevent="showRegister = true">注册</button>
+          <button class="save-btn" @click.prevent="showLogin = true">启用</button>
         </div>
+      </div>
+      <div class="setting-group">
+        <div class="unit">提示：启用后若未勾选“暂停自动保存”，将自动同步同一账号在其他端的更改。</div>
       </div>
     </div>
     <!-- 登录注册组件 -->
@@ -45,33 +45,20 @@
         </div>
       </div>
     </transition>
-
-    <transition appear name="modal-fade">
-      <div v-if="showRegister" class="password-modal" @click.self="cancelRegister">
-        <div class="password-box">
-          <AuthRegister @cancel="cancelRegister" @register-success="onRegisterSuccess" />
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 <script>
-import CryptoJS from 'crypto-js'
 import AuthLogin from '@/components/AuthLogin.vue'
-import AuthRegister from '@/components/AuthRegister.vue'
-import supabase, { signInWithUsername, signUpWithUsername, getCurrentUser, onAuthStateChange } from '@/utils/supabase'
+import supabase, { getCurrentUser, onAuthStateChange } from '@/utils/supabase'
 
 export default {
-  components: { AuthLogin, AuthRegister },
+  components: { AuthLogin },
   data() {
     return {
       state_key: 'blacknote_data',
       showLogin: false,
-      showRegister: false,
       inputUser: '',
-      inputPassword: '',
-      encryptionKey: '',
-      decryptedContent: '',
+      // no password/encryption any more
       hasLogin: false,
       cloudData: '',
       errorText: '',
@@ -114,15 +101,7 @@ export default {
       await this.fetchCloudDataSupabase()
       this.startRealtime()
     },
-    onRegisterSuccess(payload) {
-      // 注册后引导到登录（组件已经创建返回了用户名密码，可直接登录）
-      this.inputUser = payload.username
-      this.inputPassword = payload.password
-      this.showRegister = false
-      this.showLogin = true
-    },
     cancelLogin() { this.showLogin = false; this.inputPassword = ''; this.errorText = '' },
-    cancelRegister() { this.showRegister = false; this.inputPassword = ''; this.errorText = '' },
 
     // 使用 Supabase 存取备份数据
     async fetchCloudDataSupabase() {
@@ -141,105 +120,63 @@ export default {
       if (!data) {
         return { ok: false, message: '云端暂无备份' }
       }
-      this.cloudData = data.data
+      // data.data is expected to be a JSON-string containing { update_at, data }
       try {
-        this.importCloudData(this.cloudData)
-        return { ok: true }
+        const parsed = JSON.parse(data.data)
+        // parsed.data is the stringified local JSON
+        this.cloudData = parsed.data
+        return { ok: true, meta: { update_at: parsed.update_at } }
       } catch (e) {
-        return { ok: false, message: '解密失败: ' + e.message }
+        return { ok: false, message: '解析云端数据失败: ' + e.message }
       }
     },
 
-    async cloudSignOutSupabase() {
-      await supabase.auth.signOut({ scope: 'local' })
-    },
+    // sign out / account delete handled in account.vue
 
     async cloudUploadSupabase() {
       const user = getCurrentUser()
       if (!user) return { ok: false, message: '未登录' }
-      if (!this.inputPassword) return { ok: false, message: '请先输入用于加密的密码' }
-
-      const encryptionKey = CryptoJS.SHA256(this.inputPassword).toString()
-      const localData = this.getLocalData()
-      const base64Content = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(localData))
-      const encryptedData = CryptoJS.AES.encrypt(base64Content, encryptionKey).toString()
-
-      // upsert
-      const payload = { user_id: user.id, data: encryptedData }
+      const localData = this.getLocalData() // string
+      const payloadData = JSON.stringify({ update_at: new Date().toISOString(), data: localData })
+      const payload = { user_id: user.id, data: payloadData }
       const { error } = await supabase.from('backups').upsert(payload, { onConflict: 'user_id' })
       if (error) return { ok: false, message: error.message }
       return { ok: true }
     },
 
-    async cloudDeleteSupabase() {
-      const user = getCurrentUser()
-      if (!user) return { ok: false, message: '未登录' }
-      const { error } = await supabase.from('backups').delete().eq('user_id', user.id)
-      if (error) return { ok: false, message: error.message }
-      return { ok: true }
-    },
+    // account deletion handled in account.vue
 
-    async handleCloudSignOut() {
-      if (!confirm('确定要登出吗？登出后云备份数据不会被删除，但需要重新登录才能访问')) return
-      await this.cloudSignOutSupabase()
-      this.logout()
-    },
+    // sign out moved to account.vue
 
     async handleCloudUpload() {
       if (!this.hasLogin) { this.errorText = '请先登录'; return }
       const res = await this.cloudUploadSupabase()
-      if (res.ok) alert('备份成功！')
-      else this.errorText = res.message || '备份失败'
+      if (res.ok) {
+        alert('备份成功！')
+      } else {
+        this.errorText = res.message || '备份失败'
+        console.log(res.message)
+      }
     },
 
-    async handleCloudDelete() {
-      if (!confirm('确定要注销账号吗？注销后云备份将不可找回')) return
-      const res = await this.cloudDeleteSupabase()
-      if (res.ok) alert('注销成功！')
-      else this.errorText = res.message || '注销失败'
-      // sign out
-      await supabase.auth.signOut()
-      this.logout()
+    // account deletion moved to account.vue
+
+    // 还原：将云端数据覆盖本地数据
+    async handleCloudImport() {
+      const res = await this.fetchCloudDataSupabase()
+      if (!res.ok) { alert(res.message || '获取云端数据失败'); return }
+      try {
+        const json = JSON.parse(this.cloudData)
+        this.validateBackup(json)
+        localStorage.setItem(this.state_key, JSON.stringify(json))
+        if (confirm('已将云端数据还原到本地，立即刷新以应用吗？')) window.location.reload()
+        else alert('云端数据已写入本地存储，需要刷新应用以生效')
+      } catch (e) { alert('还原失败：' + e.message) }
     },
 
-    handleCloudImport(params) {
-      this.importBackupData(JSON.parse(params))
-    },
+    // no encryption helpers any more
 
-    importCloudData(cloudData) {
-      const key = CryptoJS.SHA256(this.inputPassword).toString()
-      const bytes = CryptoJS.AES.decrypt(cloudData, key)
-      const base64Content = bytes.toString(CryptoJS.enc.Utf8)
-      if (!base64Content) throw new Error('解密失败')
-      this.decryptedContent = this.decodeBase64(base64Content)
-      this.encryptionKey = key
-      this.errorText = ''
-    },
-
-    decodeBase64(content) {
-      try { return CryptoJS.enc.Base64.parse(content).toString(CryptoJS.enc.Utf8) }
-      catch (error) { console.error('解码失败:', error); return content }
-    },
-
-    async handleRegister() {
-      if (!this.inputUser || !this.inputPassword) { this.errorText = '用户名和密码不能为空'; return }
-      const { user, error } = await signUpWithUsername(this.inputUser, this.inputPassword)
-      if (error) { this.errorText = error.message; return }
-      alert('注册成功，请登录以完成同步')
-      this.showRegister = false
-      this.showLogin = true
-    },
-
-    async handleLogin() {
-      if (!this.inputUser || !this.inputPassword) { this.errorText = '用户名和密码不能为空'; return }
-      const { user, error } = await signInWithUsername(this.inputUser, this.inputPassword)
-      if (error) { this.errorText = error.message; return }
-      // 登录成功后 fetch 数据
-      this.hasLogin = true
-      await this.fetchCloudDataSupabase()
-      this.showLogin = false
-      this.startRealtime()
-    },
+    // login/register handled via AuthLogin/AuthRegister components and account.vue
 
     logout() {
       this.encryptionKey = ''
@@ -248,6 +185,7 @@ export default {
       this.errorText = ''
       this.hasLogin = false
       this.stopRealtime()
+      // note: sign-out background reset handled in account.vue
     },
 
     getLocalData() {
@@ -314,17 +252,23 @@ export default {
       if (this.realtimeSub) return
       this.realtimeSub = supabase
         .from(`backups:user_id=eq.${user.id}`)
+        .on('INSERT', payload => {
+          if (!this.$store.state.preferences.pause_save_state) {
+            try {
+              const parsed = JSON.parse(payload.new.data)
+              const json = JSON.parse(parsed.data)
+              // apply to Vuex store without echoing back to supabase
+              this.$store.commit('applyRemoteBackup', json)
+            } catch (e) { console.warn('实时同步解析失败', e) }
+          }
+        })
         .on('UPDATE', payload => {
           if (!this.$store.state.preferences.pause_save_state) {
-            const newData = payload.new.data
             try {
-              // 尝试用当前密码解密并覆盖
-              this.importCloudData(newData)
-              const json = JSON.parse(this.decryptedContent)
-              localStorage.setItem(this.state_key, JSON.stringify(json))
-              // emit reload if needed
-              // window.location.reload()
-            } catch (e) { console.warn('实时同步解密失败') }
+              const parsed = JSON.parse(payload.new.data)
+              const json = JSON.parse(parsed.data)
+              this.$store.commit('applyRemoteBackup', json)
+            } catch (e) { console.warn('实时同步解析失败', e) }
           }
         })
         .subscribe()
@@ -363,7 +307,7 @@ export default {
 .setting-group {
   display: flex;
   align-items: center;
-  margin: 12px 0;
+  margin: 10px 0;
 }
 
 .setting-label {
@@ -389,7 +333,7 @@ export default {
 
 .unit {
   color: #999;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .path-selector {

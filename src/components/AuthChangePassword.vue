@@ -1,40 +1,39 @@
 <template>
   <div class="auth-box">
-    <h3>登录</h3>
-    <input v-model="username" placeholder="用户名" class="login-input" />
-    <input v-model="password" placeholder="密码" type="password" class="login-input" />
+    <h3>修改密码</h3>
+    <input v-model="current" placeholder="当前密码" type="password" class="login-input" />
+    <input v-model="next" placeholder="新密码" type="password" class="login-input" />
+    <input v-model="confirm" placeholder="确认新密码" type="password" class="login-input" />
     <div class="error" v-if="error">{{ error }}</div>
     <div class="modal-actions">
-      <button class="btn-confirm" @click="handleLogin">登录</button>
+      <button class="btn-confirm" @click="handleChange">修改</button>
       <button class="btn-cancel" @click="$emit('cancel')">取消</button>
     </div>
   </div>
 </template>
 
 <script>
-import { signInWithUsername } from '../utils/supabase'
+import supabase, { signInWithUsername, getCurrentUser } from '@/utils/supabase'
 
 export default {
   data() {
-    return {
-      username: '',
-      password: '',
-      error: ''
-    }
+    return { current: '', next: '', confirm: '', error: '' }
   },
   methods: {
-    async handleLogin() {
+    async handleChange() {
       this.error = ''
-      if (!this.username || !this.password) {
-        this.error = '用户名和密码不能为空'
-        return
-      }
-      const { user, error } = await signInWithUsername(this.username, this.password)
-      if (error) {
-        this.error = error.message || '登录失败'
-        return
-      }
-      this.$emit('login-success', { user, username: this.username, password: this.password })
+      if (!this.current || !this.next) { this.error = '请填写当前密码和新密码'; return }
+      if (this.next !== this.confirm) { this.error = '两次新密码不一致'; return }
+      const user = getCurrentUser()
+      if (!user) { this.error = '未登录'; return }
+      // 校验当前密码
+      const username = user.email ? user.email.split('@')[0] : ''
+      const { error: signErr } = await signInWithUsername(username, this.current)
+      if (signErr) { this.error = signErr.message || '当前密码验证失败'; return }
+      // 更新密码
+      const { error } = await supabase.auth.update({ password: this.next })
+      if (error) { this.error = error.message || '修改失败'; return }
+      this.$emit('changed')
     }
   }
 }

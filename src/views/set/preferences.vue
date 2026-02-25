@@ -31,6 +31,7 @@
   import Tags from '@/views/set/tags.vue'
   import Backup from '@/views/set/backup.vue'
   import Advance from '@/views/set/advance.vue'
+  import Account from '@/views/set/account.vue'
 
   export default {
     props: {
@@ -38,7 +39,7 @@
       currentTab: String
     },
     components: {
-      Basic, Tags, Backup, Advance,
+      Basic, Tags, Backup, Advance, Account
     },
     data() {
         return {
@@ -46,7 +47,8 @@
             { name: '通用', path: 'basic' },
             { name: '标签', path: 'tags' },
             { name: '备份', path: 'backup' },
-            { name: '高级', path: 'advance' }
+            { name: '高级', path: 'advance' },
+            { name: '账号', path: 'account' }
           ]
         }
       },
