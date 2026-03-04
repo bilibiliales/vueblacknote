@@ -112,9 +112,10 @@ const store =new Vuex.Store({
       }
     },
     //设置本地保存的state数据
-    saveState(state) {
-      if(state.preferences.pause_save_state){
-        return;//取消自动保存
+    // payload: { force: true } 可以强制绕过 pause_save_state
+    saveState(state, payload) {
+      if (state.preferences.pause_save_state && !(payload && payload.force)) {
+        return; // 取消自动保存（除非强制）
       }
       // write local copy
       const payloadObj = {

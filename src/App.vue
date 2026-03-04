@@ -128,20 +128,21 @@ export default {
   created() {
     this.views=this.$store.state.preferences.default_view;
     this.link_to_homepage();
-    this.changeBackground();
   },
   methods: {
     // 背景图片切换
     async changeBackground() {
       try {
         const pref = this.$store.state.preferences
-        // default to color when no background selected
+
+        // 没有背景 → 纯色
         if (!pref.background) {
           this.backgroundImgUrl = ''
           this.backgroundColor = pref.dark ? '#1f1f1f' : '#ffffff'
           return
         }
-        // preset
+
+        // preset 背景（public bucket）
         if (pref.background.startsWith('preset:')) {
           const name = pref.background.replace('preset:', '')
           // public bucket
@@ -152,35 +153,42 @@ export default {
             return
           }
         }
-        // custom uploaded background
+
+        // custom 私有背景
         if (pref.background === 'custom') {
-          // 如果已保存了一个 signed URL（短期），优先使用；否则为当前用户生成一个新的 signed URL
-          if (pref.background_url) {
-            this.backgroundImgUrl = pref.background_url
-            this.backgroundColor = ''
-            return
-          }
-          const user = getCurrentUser()
-          if (!user) {
-            this.backgroundImgUrl = ''
-            this.backgroundColor = pref.dark ? '#1f1f1f' : '#ffffff'
-            return
-          }
-          const filePath = `${user.id}.png`
-          const { signedURL, error } = await supabase.storage.from('backgrounds').createSignedUrl(filePath, 60 * 60)
-          if (!error && signedURL) {
-            this.backgroundImgUrl = signedURL.signedUrl || signedURL
-            this.backgroundColor = ''
-            return
-          }
+          await this.loadCustomBackground()
+          this.backgroundColor = ''
+          return
         }
-        // fallback to color
+
+        // fallback
         this.backgroundImgUrl = ''
         this.backgroundColor = pref.dark ? '#1f1f1f' : '#ffffff'
+
       } catch (e) {
         console.warn('changeBackground error', e)
         this.backgroundImgUrl = ''
-        this.backgroundColor = this.$store.state.preferences.dark ? '#1f1f1f' : '#ffffff'
+        this.backgroundColor = this.$store.state.preferences.dark
+          ? '#1f1f1f'
+          : '#ffffff'
+      }
+    },
+    async loadCustomBackground() {
+      const path = this.$store.state.preferences.background_url
+      if (!path) return
+
+      const { data, error } = await supabase
+        .storage
+        .from('backgrounds')
+        .download(path)
+
+      if (!error && data) {
+
+        if (this.backgroundImgUrl) {
+          URL.revokeObjectURL(this.backgroundImgUrl)
+        }
+
+        this.backgroundImgUrl = URL.createObjectURL(data)
       }
     },
     // 跳转默认页面
@@ -216,12 +224,12 @@ export default {
   computed: {
     leftMenuBgColor() {
       const color = this.$store.state.preferences.item_color;
-      const rgbaColor = color+"CC";
+      const rgbaColor = color+"C8";
       return rgbaColor;
     },
     topMenuBgColor() {
       const color = this.$store.state.preferences.item_color;
-      const rgbaColor = color+"D8";
+      const rgbaColor = color+"C8";
       return rgbaColor;
     },
     textColor() {
@@ -233,9 +241,13 @@ export default {
       this.updateCurrentTitle()
     },
     // 监测背景配置更改
-    '$store.state.preferences.background'(newVal) { this.changeBackground() },
-    '$store.state.preferences.background_url'(newVal) { this.changeBackground() },
-    '$store.state.preferences.dark'(newVal) { this.changeBackground() }
+    '$store.state.preferences': {
+      deep: true,
+      immediate: true,
+      handler() {
+        this.changeBackground()
+      }
+    }
   },
   mounted() {
     this.updateCurrentTitle()

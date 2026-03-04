@@ -36,7 +36,7 @@
             <label class="setting-label">头像</label>
             <div style="text-align:center">
               <div class="avatar-preview" v-if="profile.avatar_url">
-                <img :src="profile.avatar_url" alt="avatar" class="avatar-img" />
+                <img :src="avatarImgUrl" alt="avatar" class="avatar-img" />
               </div>
             </div>
             <div>
@@ -100,11 +100,13 @@ export default {
       showChangePwd: false,
       hasLogin: false,
       authUsername: '',
+      avatarImgUrl: '',
       profile: {
         username: '',
         avatar_url: '',
         background_url: ''
-      }
+      },
+      profileSubscription: null,
     }
   },
   created() {
@@ -112,13 +114,14 @@ export default {
     if (u) {
       this.hasLogin = true
       this.authUsername = u.email ? u.email.split('@')[0] : ''
-      this.fetchProfile()
-    }
+      this.fetchProfile()      // start realtime updates immediately for existing session
+      this.subscribeProfileRealtime()    }
     onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         this.hasLogin = true
         this.authUsername = session.user ? (session.user.email ? session.user.email.split('@')[0] : '') : ''
         this.fetchProfile()
+        this.subscribeProfileRealtime()
       }
       if (event === 'SIGNED_OUT') {
         this.hasLogin = false
@@ -131,6 +134,7 @@ export default {
       this.hasLogin = true
       this.authUsername = payload.username || (getCurrentUser() ? (getCurrentUser().email ? getCurrentUser().email.split('@')[0] : '') : '')
       await this.fetchProfile()
+      this.subscribeProfileRealtime()
     },
     onRegisterSuccess(payload) {
       // after register prompt login
@@ -170,7 +174,6 @@ export default {
           if (payload.background_url) this.$store.state.preferences.background_url = payload.background_url
           this.$store.commit('saveState')
         } finally { this.$store.state.__suppress_sync = false }
-        alert('已保存')
       }
     },
 
@@ -179,39 +182,80 @@ export default {
     async uploadAvatar(event) {
       const file = event.target.files[0]
       if (!file) return
+
       const user = getCurrentUser()
       if (!user) { alert('请先登录'); return }
-      const filePath = `${user.id}.png`
-      const { error } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true })
-      if (error) { alert('上传失败: ' + error.message); return }
-      const { signedURL, error: signErr } = await supabase.storage.from('avatars').createSignedUrl(filePath, 60 * 60)
-      if (signErr) { alert('获取URL失败: ' + signErr.message); return }
-      const url = (signedURL && signedURL.signedUrl) ? signedURL.signedUrl : signedURL
-      this.profile.avatar_url = url
-      // persist to profiles table
-      const payload = { id: user.id, avatar_url: this.profile.avatar_url, updated_at: new Date().toISOString() }
-      await supabase.from('profiles').upsert(payload)
-      try {
-        this.$store.state.__suppress_sync = true
-        this.$store.commit('saveState')
-      } finally { this.$store.state.__suppress_sync = false }
-      alert('头像已上传并已保存到资料')
+
+      const ext = file.name.split('.').pop()
+      const filePath = `${user.id}_${Date.now()}.${ext}`
+
+      const { error } = await supabase
+        .storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: false })
+
+      if (error) {
+        alert('上传失败: ' + error.message)
+        return
+      }
+
+      // 只保存路径
+      this.profile.avatar_url = filePath
+
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        avatar_url: filePath,
+        updated_at: new Date().toISOString()
+      })
+
+      await this.loadAvatar()
+    },
+
+    async loadAvatar() {
+      const path = this.profile.avatar_url
+      if (!path) {
+        this.avatarImgUrl = ''
+        return
+      }
+
+      const { data, error } = await supabase
+        .storage
+        .from('avatars')
+        .download(path)
+
+      if (!error && data) {
+
+        if (this.avatarImgUrl) {
+          URL.revokeObjectURL(this.avatarImgUrl)
+        }
+
+        this.avatarImgUrl = URL.createObjectURL(data)
+      }
     },
 
     async removeAvatar() {
       const user = getCurrentUser()
       if (!user) { alert('请先登录'); return }
+
       try {
-        await supabase.storage.from('avatars').remove([`${user.id}.png`])
+        // remove the specific uploaded file if we know its name
+        const path = this.profile.avatar_url
+        if (path) {
+          await supabase.storage.from('avatars').remove([path])
+        }
+
+        if (this.avatarImgUrl) {
+          URL.revokeObjectURL(this.avatarImgUrl)
+        }
+
+        this.avatarImgUrl = ''
         this.profile.avatar_url = ''
-        // persist to profiles table
-        const payload = { id: user.id, avatar_url: null, updated_at: new Date().toISOString() }
-        await supabase.from('profiles').upsert(payload)
-        try {
-          this.$store.state.__suppress_sync = true
-          this.$store.commit('saveState')
-        } finally { this.$store.state.__suppress_sync = false }
-        alert('头像已删除')
+
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        })
       } catch (e) {
         alert('删除头像失败: ' + (e.message || e))
       }
@@ -220,6 +264,10 @@ export default {
     async onPasswordChanged() {
       alert('密码已修改，请重新登录')
       await supabase.auth.signOut()
+      if (this.profileSubscription) {
+        supabase.removeSubscription(this.profileSubscription)
+        this.profileSubscription = null
+      }
       this.hasLogin = false
       this.showChangePwd = false
       this.$store.state.preferences.background = ''
@@ -229,6 +277,10 @@ export default {
     async handleSignOut() {
       if (!confirm('确定要登出吗？')) return
       await supabase.auth.signOut()
+      if (this.profileSubscription) {
+        supabase.removeSubscription(this.profileSubscription)
+        this.profileSubscription = null
+      }
       this.hasLogin = false
       // reset background to pure color
       this.$store.state.preferences.background = ''
@@ -242,7 +294,10 @@ export default {
       if (!user) { alert('未登录'); return }
       try {
         // 删除私有背景文件（忽略错误）
-        try { await supabase.storage.from('backgrounds').remove([`${user.id}.png`]) } catch (e) { /* ignore */ }
+        try {
+          const path = this.$store.state.preferences.background_url || this.profile.background_url
+          if (path) await supabase.storage.from('backgrounds').remove([path])
+        } catch (e) { /* ignore */ }
         // 删除 backups
         const { error: e1 } = await supabase.from('backups').delete().eq('user_id', user.id)
         if (e1) console.warn('删除backups失败', e1.message)
@@ -251,6 +306,10 @@ export default {
         if (e2) console.warn('删除profiles失败', e2.message)
         // sign out
         await supabase.auth.signOut()
+        if (this.profileSubscription) {
+          supabase.removeSubscription(this.profileSubscription)
+          this.profileSubscription = null
+        }
         this.hasLogin = false
         this.$store.state.preferences.background = ''
         this.$store.state.preferences.background_url = ''
@@ -259,9 +318,76 @@ export default {
         alert('注销失败: ' + (err.message || err))
       }
     },
+    subscribeProfileRealtime() {
+      const user = getCurrentUser()
+      if (!user) return
+
+      // 防止重复订阅
+      if (this.profileSubscription) {
+        supabase.removeSubscription(this.profileSubscription)
+        this.profileSubscription = null
+      }
+
+      this.profileSubscription = supabase
+        .from(`profiles:id=eq.${user.id}`)
+        .on('UPDATE', (payload) => {
+
+          const newData = payload.new
+          if (!newData) return
+          console.log('Profile 更新:', newData)
+
+          // 更新本地状态
+          this.profile.username = newData.username || ''
+          this.profile.avatar_url = newData.avatar_url || ''
+          this.loadAvatar() // 头像变化时重新加载
+          const newBg = newData.background_url || ''
+          this.profile.background_url = newBg
+
+          // 立即覆盖背景（更新为最新的或删除背景）
+          const prefs = this.$store.state.preferences
+          if (this.$store.state.preferences.pause_save_state) {
+            return  // 本地未开启云同步时不自动覆盖背景
+          }
+          if (newBg) {
+            prefs.background = 'custom'
+            prefs.background_url = newBg
+          } else {
+            prefs.background = ''
+            prefs.background_url = ''
+          }
+          this.$store.commit('saveState')
+        })
+        .subscribe((status) => {
+          console.log('Realtime 状态:', status)
+        })
+    },
     // applyProfileBackground removed: background handled via basic.vue uploads and preferences
     cancelLogin() { this.showLogin = false },
     cancelRegister() { this.showRegister = false },
+  },
+  watch: {
+    'profile.avatar_url': {
+      immediate: true,
+      handler() {
+        this.loadAvatar()
+      }
+    },
+    // 监听背景路径变化并在 custom 模式下同步全局 store
+    'profile.background_url': {
+      immediate: false,
+      handler(newVal) {
+        const prefs = this.$store.state.preferences
+        if (prefs.background === 'custom') {
+          if (newVal) {
+            prefs.background_url = newVal
+          } else {
+            prefs.background = ''
+            prefs.background_url = ''
+          }
+          this.$store.commit('saveState')
+        }
+      }
+    }
   }
 }
 </script>

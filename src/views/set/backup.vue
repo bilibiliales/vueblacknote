@@ -189,7 +189,8 @@ export default {
     },
 
     getLocalData() {
-      this.$store.commit('saveState')
+      // 手动获取本地数据时强制保存并推送（即使处于暂停自动保存）
+      this.$store.commit('saveState', { force: true })
       let savedState = localStorage.getItem(this.state_key)
       if (savedState == null) {
         savedState = JSON.stringify({ preferences: this.$store.state.preferences, tags: this.$store.state.tags, notes: this.$store.state.notes })
