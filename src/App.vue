@@ -90,7 +90,7 @@
 
     <div class="icp-footer">
       <a href="https://beian.miit.gov.cn/" target="_blank">湘ICP备2025112469号-1</a>
-      <img src="./resource/备案图标.png" alt="湘公网安备43010202001893号" style="max-width: 16px; max-height: 16px;">
+      <img src="./resource/备案图标.png" alt="湘公网安备43010202001893号" style="max-width: 10px; max-height: 10px; margin-left: 5px;">
       <a href="https://beian.mps.gov.cn/#/query/webSearch?code=43010202001893" rel="noreferrer" target="_blank">湘公网安备43010202001893号</a>
     </div>
 
@@ -122,6 +122,7 @@ export default {
       showPreferences: false,
       currentTab: 'basic',
       backgroundImgUrl: "",
+      currentBackgroundUrl: "",
       backgroundColor: this.$store.state.preferences.dark ? '#1f1f1f' : '#ffffff'
     };
   },
@@ -175,7 +176,7 @@ export default {
     },
     async loadCustomBackground() {
       const path = this.$store.state.preferences.background_url
-      if (!path) return
+      if (!path || path === this.currentBackgroundUrl) return
 
       const { data, error } = await supabase
         .storage
@@ -189,6 +190,7 @@ export default {
         }
 
         this.backgroundImgUrl = URL.createObjectURL(data)
+        this.currentBackgroundUrl = path
       }
     },
     // 跳转默认页面
@@ -267,7 +269,7 @@ export default {
     width: 100%;
     text-align: center;
     bottom: 10px;
-    font-size: 14px;
+    font-size: 10px;
   }
 
   .icp-footer a {

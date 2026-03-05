@@ -39,7 +39,7 @@
         <span class="add-task" :style="{ color: textColor } " @click="removeAllTask">-清空任务</span>
       </div>
     </div>
-  
+
     <!--卡片视图-->
     <div v-else key="card" class="card-views">
       <div v-for="note in filteredNotes" :key="note.n_id" :style="{ backgroundColor: listBgColor }" class="card-note">
@@ -73,15 +73,15 @@
     </transition>
   </div>
   </template>
-  
+
   <script>
   import dayjs from 'dayjs';
   import 'dayjs/locale/zh-cn';
   import customParseFormat from 'dayjs/plugin/customParseFormat';
-  
+
   dayjs.extend(customParseFormat);
   dayjs.locale('zh-cn');
-  
+
   export default {
     name: 'MainView',
     props: {
@@ -107,9 +107,9 @@
       },
       getStatusColor(status) {
         const colors = {
-          todo: '#f4bd4fee',
-          done: '#5fc153ee',
-          remove: '#b5b1b0ee'
+          todo: '#f4bd4f',
+          done: '#5fc153',
+          remove: '#b5b1b0'
         };
         return colors[status];
       },
@@ -153,9 +153,9 @@
       removeAllTask() {
         //当前所有页面
         const currentTagId = this.$route.params.id;
-        const filters = note => 
-          note.status !== 'remove' && 
-          note.tags.includes(currentTagId) && 
+        const filters = note =>
+          note.status !== 'remove' &&
+          note.tags.includes(currentTagId) &&
           note.title.includes(this.appliedSearchText);
         const visibleNotes = this.$store.state.notes.filter(filters);
         if (this.$store.state.preferences.remove_warning) {
@@ -193,9 +193,9 @@
     computed: {
       filteredNotes() {
         const tagId = this.$route.params.id;
-        return this.$store.state.notes.filter(note => 
-          note.status !== 'remove' && 
-          note.tags.includes(tagId) && 
+        return this.$store.state.notes.filter(note =>
+          note.status !== 'remove' &&
+          note.tags.includes(tagId) &&
           note.title.includes(this.appliedSearchText)
         );
       },
@@ -209,7 +209,7 @@
         return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
       },
       transName() {
-        return this.isInitialLoad ? 'main-fade' : 
+        return this.isInitialLoad ? 'main-fade' :
               this.views === 1 ? 'slide-right' : 'slide-left';
       },
     },
@@ -241,13 +241,13 @@
     },
   }
   </script>
-  
+
   <style scoped>
-  
+
   .list-views {
     padding: 20px;
   }
-  
+
   .list-note {
     display: flex;
     justify-content: space-between;
@@ -258,38 +258,36 @@
     box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
     translate: all 0.3s;
   }
-  
+
   .list-left {
     text-align: center;
     width: 100px;
   }
-  
+
   .list-left h4 {
     margin: 0;
     font-size: 32px;
   }
-  
+
   .list-left span {
     display: block;
     font-size: 12px;
     color: #999;
     text-transform: uppercase;
   }
-  
+
   .list-middle {
     flex: 1;
     padding: 0 20px;
   }
-  
-  
-  
+
   .card-views {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     padding: 20px;
   }
-  
+
   .card-note {
     display: block;
     text-align: center;
@@ -302,12 +300,12 @@
     flex: 1 0 calc(33.333% - 20px);
     box-sizing: border-box;
   }
-  
+
   .card-note h4 {
     margin: 0;
     font-size: 20px;
   }
-  
+
   .card-note-footer {
     width: 100%;
     display: flex;
@@ -319,14 +317,14 @@
     box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
     translate: all 0.3s;
   }
-  
-  
+
+
   .time {
     display: block;
     font-size: 14px;
     margin-bottom: 4px;
   }
-  
+
   .tag-color {
     display: inline-block;
     width: 15px;
@@ -335,7 +333,7 @@
     margin-right: 5px;
     margin-bottom: 5px;
   }
-  
+
   .title-input {
     border: none;
     background: transparent;
@@ -345,7 +343,7 @@
     width: 30%;
     margin-bottom: 10px;
   }
-  
+
   .card-title-input {
     border: none;
     background: transparent;
@@ -356,32 +354,32 @@
     width: 86%;
     margin-bottom: 10px;
   }
-  
+
   .list-right {
     display: flex;
     align-items: center;
     gap: 15px;
   }
-  
+
   .encrypted {
     width: 16px;
     height: 16px;
     display: flex;
     align-items: center;
   }
-  
+
   .lock-icon {
     width: 16px;
     height: 16px;
     opacity: 0.7;
   }
-  
+
   .card-lock-icon {
     width: 16px;
     height: 16px;
     opacity: 0.7;
   }
-  
+
   .edit-button {
     padding: 8px 20px;
     border-radius: 8px;
@@ -397,17 +395,28 @@
   .edit-button:hover {
     background-color: #005aa4;
   }
-  
+
   .status-select {
     padding: 10px 20px;
     border-radius: 8px;
     border: none;
     color: white;
+    opacity: 1;
     cursor: pointer;
     appearance: none;
     min-width: 80px;
+    background-color: black;
+    transition: all 0.2s;
   }
-  
+
+  .status-select:hover {
+    opacity: 1;
+  }
+
+  .status-select:focus {
+    outline: none;
+  }
+
   .footer {
     text-align: center;
     padding: 4px;
@@ -418,7 +427,7 @@
   .search {
     padding: 4px;
   }
-  
+
   .add-task {
     text-align: center;
     cursor: pointer;
@@ -428,7 +437,7 @@
     font-size: 16px;
     transition: all 0.3s;
   }
-  
+
   .add-task:hover {
     background: rgba(128,128,128,0.1);
   }
@@ -446,7 +455,7 @@
     outline: none;
   }
   .search-input:focus {
-    background: rgba(128, 128, 128,0.2);
+    opacity: 0.75;
   }
   .main-fade-enter-active {
     transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);
@@ -465,7 +474,7 @@
   .slide-right-leave-active {
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1);
   }
-  
+
   .slide-left-enter {
     opacity: 0;
     transform: translateX(20px);
@@ -474,7 +483,7 @@
     opacity: 0;
     transform: translateX(-20px);
   }
-  
+
   .slide-right-enter {
     opacity: 0;
     transform: translateX(-20px);

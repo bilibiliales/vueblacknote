@@ -7,7 +7,7 @@
               <h3>编辑被拒绝</h3>
               <p class="error">无法进入编辑，请将<p class="error">任务移出回收站后重试。</p></p>
               <div class="modal-buttons">
-                <button @click="cancelPassword" class="btn-cancel">返回</button>
+                <button @click="cancelPassword" class="btn-cancel" style="padding: 8px 60px;">返回</button>
               </div>
           </div>
           <div v-else-if="showPasswordModal" class="password-box">
@@ -454,6 +454,13 @@
     padding: 8px;
     border: 1px solid #bbbbbb;
     border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .password-box input:focus {
+    outline: none;
+    border-color: #0078d7;
+    box-shadow: 0 0 0 3px rgba(0, 120, 215, 0.1);
   }
 
   .btn-cancel {

@@ -101,6 +101,7 @@ export default {
       hasLogin: false,
       authUsername: '',
       avatarImgUrl: '',
+      currentAvatarUrl: "",
       profile: {
         username: '',
         avatar_url: '',
@@ -217,6 +218,7 @@ export default {
         this.avatarImgUrl = ''
         return
       }
+      if (path === this.currentAvatarUrl) return
 
       const { data, error } = await supabase
         .storage
@@ -230,6 +232,7 @@ export default {
         }
 
         this.avatarImgUrl = URL.createObjectURL(data)
+        this.currentAvatarUrl = path
       }
     },
 
@@ -334,7 +337,6 @@ export default {
 
           const newData = payload.new
           if (!newData) return
-          console.log('Profile 更新:', newData)
 
           // 更新本地状态
           this.profile.username = newData.username || ''
@@ -357,9 +359,7 @@ export default {
           }
           this.$store.commit('saveState')
         })
-        .subscribe((status) => {
-          console.log('Realtime 状态:', status)
-        })
+        .subscribe()
     },
     // applyProfileBackground removed: background handled via basic.vue uploads and preferences
     cancelLogin() { this.showLogin = false },
@@ -637,10 +637,9 @@ export default {
 }
 
 .default-input:focus {
-  border-color: #0078d7;
   outline: none;
+  border-color: #0078d7;
   box-shadow: 0 0 0 3px rgba(0, 120, 215, 0.1);
-  transform: translateY(-2px);
 }
 
 .avatar-img {

@@ -289,14 +289,13 @@ export default {
   border-radius: 6px;
   margin-bottom: 15px;
   font-size: 14px;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .login-input:focus {
-  border-color: #0078d7;
   outline: none;
+  border-color: #0078d7;
   box-shadow: 0 0 0 3px rgba(0, 120, 215, 0.1);
-  transform: translateY(-2px);
 }
 
 .error {

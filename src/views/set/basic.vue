@@ -199,8 +199,6 @@ export default {
         background_url: filePath,
         updated_at: new Date().toISOString()
       })
-
-      alert('上传成功，背景已立即生效')
     },
 
     // 删除背景：将背景颜色置为深/浅色；若是自定义背景并已登录则删除 bucket 中对应图片
@@ -268,6 +266,12 @@ export default {
     border: 1px solid #ddd;
     border-radius: 6px;
     width: 120px;
+    transition: all 0.3s;
+  }
+
+  .custom-select:focus {
+    outline: none;
+    opacity: 0.75;
   }
 
   .custom-input {

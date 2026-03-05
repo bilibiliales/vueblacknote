@@ -107,9 +107,9 @@ export default {
     },
     getStatusColor(status) {
       const colors = {
-        todo: '#f4bd4fee',
-        done: '#5fc153ee',
-        remove: '#b5b1b0ee'
+        todo: '#f4bd4f',
+        done: '#5fc153',
+        remove: '#b5b1b0'
       };
       return colors[status];
     },
@@ -151,8 +151,8 @@ export default {
     },
     removeAllTask() {
       //当前所有页面
-      const filters = note => 
-        note.status == 'todo' && 
+      const filters = note =>
+        note.status == 'todo' &&
         note.title.includes(this.appliedSearchText);
       const visibleNotes = this.filteredNotes;
       if (this.$store.state.preferences.remove_warning) {
@@ -183,12 +183,12 @@ export default {
       return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
     },
     transName() {
-      return this.isInitialLoad ? 'main-fade' : 
+      return this.isInitialLoad ? 'main-fade' :
              this.views === 1 ? 'slide-right' : 'slide-left';
     },
     filteredNotes() {
-      return this.$store.state.notes.filter(note => 
-        note.status == 'todo' && 
+      return this.$store.state.notes.filter(note =>
+        note.status == 'todo' &&
         note.title.includes(this.appliedSearchText)
       );
     },
@@ -373,9 +373,20 @@ export default {
   border-radius: 8px;
   border: none;
   color: white;
+  opacity: 1;
   cursor: pointer;
   appearance: none;
   min-width: 80px;
+  background-color: black;
+  transition: all 0.2s;
+}
+
+.status-select:hover {
+  opacity: 1;
+}
+
+.status-select:focus {
+  outline: none;
 }
 
 .footer {
@@ -416,7 +427,7 @@ export default {
   outline: none;
 }
 .search-input:focus {
-  background: rgba(128, 128, 128,0.2);
+  opacity: 0.75;
 }
 .main-fade-enter-active {
     transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);
@@ -435,7 +446,7 @@ export default {
   .slide-right-leave-active {
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1);
   }
-  
+
   .slide-left-enter {
     opacity: 0;
     transform: translateX(20px);
@@ -444,7 +455,7 @@ export default {
     opacity: 0;
     transform: translateX(-20px);
   }
-  
+
   .slide-right-enter {
     opacity: 0;
     transform: translateX(-20px);

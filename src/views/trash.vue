@@ -105,9 +105,9 @@
       },
       getStatusColor(status) {
         const colors = {
-          todo: '#f4bd4fee',
-          done: '#5fc153ee',
-          remove: '#b5b1b0ee'
+          todo: '#f4bd4f',
+          done: '#5fc153',
+          remove: '#b5b1b0'
         };
         return colors[status];
       },
@@ -345,9 +345,20 @@
     border-radius: 8px;
     border: none;
     color: white;
+    opacity: 1;
     cursor: pointer;
     appearance: none;
     min-width: 80px;
+    background-color: black;
+    transition: all 0.2s;
+  }
+
+  .status-select:hover {
+    opacity: 1;
+  }
+
+  .status-select:focus {
+    outline: none;
   }
 
   .footer {
@@ -389,7 +400,7 @@
     outline: none;
   }
   .search-input:focus {
-    background: rgba(128, 128, 128,0.2);
+    opacity: 0.75;
   }
   .main-fade-enter-active {
     transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1);
