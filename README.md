@@ -1,43 +1,46 @@
 # 小黑记事本 (Vue.js 项目)
 
-> 小黑记事本是一款基于 Vue 开发的简洁风格应用，支持 Markdown 编辑、标签分类、深色模式，并提供备份与恢复功能。
+> 小黑记事本是一款基于 Vue 开发的简洁风格应用，支持 Markdown 编辑、标签分类、深色模式，并提供本地存储与云端双向备份能力，保障数据安全。
 
 
 ## 🚀 功能特性
 
-* 标签分类：可为笔记添加颜色标签。
-* 深色模式：切换深色或浅色主题。
-* 数据存储：数据默认存储在本地 localStorage 中，可以登录账号实现云端备份与还原。
-* 数据备份与恢复：支持 JSON 格式的数据导入与导出。
-* 加密存储：笔记内容可选 AES 加密存储，使用 SHA-256 生成加密私钥。
-* 回收站：已删除的笔记会贴上“已删除”的标签，可以在回收站分类中看到它们（需关闭强制删除）。
-* 任务管理：支持笔记状态标记，如待办、已完成等。
+- **标签分类**：内置6种彩色分类标签+3种自定义灰色标签，支持自由显示/隐藏，轻松管理不同类型笔记
+- **深色模式**：一键切换深色/浅色主题，适配不同使用场景
+- **数据存储**：数据默认存储在本地 localStorage 中，登录账号可实现云端备份与自动同步
+- **数据备份与恢复**：支持 JSON 格式的全量数据导入与导出，本地/云端双向备份更安全
+- **加密存储**：笔记内容可选 AES 加密存储，使用 SHA-256 生成加密私钥，敏感信息更放心
+- **回收站**：已删除的笔记会标记为"已删除"状态，可在回收站中查看、恢复或永久删除（关闭强制删除时生效）
+- **任务管理**：支持笔记状态标记（待办/已完成），可按状态分类筛选
+- **搜索功能**：全局搜索框支持按标题关键词筛选笔记，快速定位目标内容
+- **自定义背景**：支持上传自定义背景图片，登录后云端同步，多设备自动加载
+- **个人账号体系**：支持注册/登录、头像昵称修改、密码重置、账号注销等完整账号功能
 
 ---
 
 ## 🔃 版本更新日志
 >注：带⭐的为稳定版，其余版本不建议普通用户下载使用
-#### 1.0.1：
-* 初版
+#### 1.0.1
+* 初版上线
 
-#### 1.0.2：
+#### 1.0.2
 1. 支持MarkDown语法，允许在高级设置中启用/禁用MarkDown预览
 2. 编辑页面左上角保存按钮更改为编辑/保存，可自由切换编辑/预览模式
 3. 优化设置密码逻辑，需点击保存后才会修改任务的加密状态及密码
 4. 修复其他部分已知BUG
 
-#### 1.0.3：
+#### 1.0.3
 1. 增加了`transition`动画，切换路由及编辑路由下的容器时会显示对应的过渡动画
 2. 修复了由不可编辑页面点击返回后无法跳转回已加密任务的输入密码页面的问题
 3. 修复其他部分已知BUG
 
-#### 1.0.4：
+#### 1.0.4
 1. 调整偏好设置容器和输入密码容器的动画风格为由上到下+渐显
 2. 增加左侧菜单栏、顶部菜单栏和部分容器的毛玻璃效果
 3. 修改动画速率由`ease`变更为先快后慢的效果
 4. 修复部分已知BUG
 
-#### 1.0.5：⭐
+#### 1.0.5⭐
 1. 优化切换动画效果，砍掉主组件路由切换动画，变更为各子组件内显示/隐藏动画
 2. 修复了唤起输入密码框时动画不连贯的问题
 3. 删除空页面和根目录页面冗余的代码，确保稳定性；在根目录页面增加了版本号显示和删除本地数据按钮
@@ -112,9 +115,8 @@ npm run build
 npm run build --report
 ```
 
-#### 后端本地开发与运行（仅适用于1.0.8版本）
-> 后端源代码现已开源，需部署服务器以实现配置文件的云备份和还原功能。<p>
-
+### 后端本地开发与运行（仅适用于1.0.8版本）
+> 后端源代码现已开源，需部署服务器以实现配置文件的云备份和还原功能。
 > 后端使用koa.js编写，云端备份文件将加密存储至/static/用户名.txt文件夹中
 ``` bash
 # 切换目录
@@ -124,10 +126,35 @@ cd server
 node app.js
 ```
 
-#### supabase后端构建（适用于1.0.9+版本）
->supabase项目需要自行创建，可前往&nbsp;<a href="https://supabase.com/dashboard">控制台</a>&nbsp;处创建一个新项目
 
-在新项目中参考<a href="SUPABASE_SETUP.md">SUPABASE_SETUP.md</a>文件分别创建表格、存储桶以及RLS策略
+### supabase后端构建（适用于1.0.9+版本）
+> supabase项目需要自行创建，可前往 [Supabase控制台](https://supabase.com/dashboard) 创建一个新项目
+
+在新项目中参考 [SUPABASE_SETUP.md](SUPABASE_SETUP.md) 文件分别创建表格、存储桶以及RLS策略。
+
+核心表结构如下：
+```sql
+-- 备份表
+CREATE TABLE public.backups (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  data text NOT NULL,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT backups_pkey PRIMARY KEY (id),
+  CONSTRAINT backups_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+-- 用户资料表
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  username text,
+  avatar_url text,
+  background_url text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+```
 
 ---
 
@@ -135,111 +162,172 @@ node app.js
 
 ## ✅ 备份方法
 
-在应用菜单中选择 `文件 → 导出`
-
-生成 `.json` 格式的备份文件，包含所有笔记、标签和设置数据
+在应用菜单中选择 `文件 → 导出`，生成 `.json` 格式的备份文件，包含所有笔记、标签和设置数据。
 
 
 ## 🔄 恢复方法
 
-选择 `文件 → 导入`
-
-选择备份的 JSON 文件即可恢复数据
-
+选择 `文件 → 导入`，选择备份的 JSON 文件即可恢复数据。
 
 ---
 
 ## 📄 备份文件的数据结构
 
-在一些情况下可以通过修改备份文件再导入的方式来突破前端的一些限制，例如：
+在一些情况下可以通过修改备份文件再导入的方式来实现更多自定义设置，例如：
+- ✅ 设置启动时页面为某一标签页、主页面、待完成、已完成、回收站等
+- ✅ 自定义排列任务的顺序，修改任务的创建时间
+- ✅ 删除或增加标签，而不是只能隐藏或显示特定的几个标签
 
-✅设置启动时页面为某一标签页、根目录(root)、回收站(trash)等
+> 提示：在对json数据结构不太了解的情况下不建议直接修改备份文件，否则可能导致备份文件损坏。
+> **警告：不要导入任何经过非法篡改的文件，否则严重的可能会导致页面无法加载。**
+> 如不慎错误上传请勿刷新页面，弹窗点击取消——确定并执行任何涉及保存的操作以覆盖本地存储。
 
-✅自定义排列任务的顺序，修改任务的创建时间
-
-✅删除或增加标签，而不是只能隐藏或显示特定的几个标签
-
-提示：在对json数据结构不太了解的情况下不建议直接修改备份文件，否则可能导致备份文件损坏
-
-**警告：不要导入任何经过非法篡改的文件，否则严重的可能会导致页面无法加载**
-
-* 如不慎错误上传请勿刷新页面，弹窗点击取消——确定并执行任何涉及保存的操作以覆盖本地存储
-``` bash
+```json
 {
-  "settings": {
-    "dark": false,               # 是否启用深色模式
-    "view": 1,                  # 视图模式: 1=列表视图，2=卡片视图
-    "item_color": "#FF5733",     # 主题色
-    "homepage": MainView,          # 启动时显示页面：MainView=主页面，pending=待完成，completed=已完成
-    "background_img": 1,           # 背景图片编号
-    "remove_warning": true,        # 删除前警告
-    "remove_force": false            # 强制删除（删除后不放入回收站）
+  "preferences": {
+    "dark": false,                  // 是否启用深色模式
+    "item_color": "#0078D7",        // 主题色
+    "default_view": 1,              // 视图模式: 1=列表视图，2=卡片视图
+    "homepage": "MainView",         // 启动时显示页面：MainView=主页面，pending=待完成，completed=已完成
+    "background": "",               // 背景图片编号
+    "background_url": "",           // 自定义背景图片URL
+    "remove_warning": true,         // 删除前警告
+    "remove_force": false,          // 强制删除（删除后不放入回收站）
+    "enable_markdown": true,        // 是否启用Markdown
+    "enable_search": true,          // 是否启用搜索功能
+    "pause_save_state": false       // 暂停自动保存（临时生效）
   },
-  "tags": [                         # 标签列表
-    { "id": "1", "name": "工作", "color": "#FF0000" },
-    { "id": "2", "name": "学习", "color": "#00FF00" }
+  "tags": [                         // 标签列表
+    { "id": "1", "name": "红色", "color": "#ed695f", "show": true },
+    { "id": "2", "name": "橙色", "color": "#f4bd4f", "show": true },
+    { "id": "3", "name": "黄色", "color": "#fbe06d", "show": true },
+    { "id": "4", "name": "绿色", "color": "#5fc153", "show": true },
+    { "id": "5", "name": "蓝色", "color": "#53a5fc", "show": true },
+    { "id": "6", "name": "紫色", "color": "#da81ff", "show": true },
+    { "id": "7", "name": "个人", "color": "#b5b1b0", "show": false },
+    { "id": "8", "name": "工作", "color": "#b5b1b0", "show": false },
+    { "id": "9", "name": "学习", "color": "#b5b1b0", "show": false }
   ],
-  "notes": [                        # 笔记列表
+  "notes": [                        // 笔记列表
     {
-      "title": "Vue.js 学习任务",     # 标题
-      "content": "SGVsbG8gd29ybGQ=",  # base64编码的笔记内容，开头加入了盐值："BLACKNOTE@"
-      "encrypted": false,              # 是否加密
-      "tags": ["1", "2"],             # 标签ID数组
-      "created_at": "2025-03-27T14:35:00Z",  # 创建时间
-      "updated_at": "2025-03-27T15:10:00Z",  # 更新时间
-      "status": "todo"                # 任务状态: todo（待完成）, done（已完成）, remove（标记删除）
+      "n_id": "195e2aba619751b",
+      "title": "示例任务1",
+      "content": "To536l2gsOqy1XKJ8cZIFBe80y/g/FDOK4vrNOSBJwc=", // 加密内容
+      "encrypted": true,            // 是否加密
+      "tags": ["1"],                // 标签ID数组
+      "created_at": "2025-03-27T14:55:00Z",  // 创建时间
+      "updated_at": "2025-03-27T15:10:00Z",  // 更新时间
+      "status": "done"              // 任务状态: todo（待完成）, done（已完成）, remove（标记删除）
     },
     {
-      "id": "n2",
-      "title": "日常待办",
-      "content": "To536l2gsOqy1XKJ8cZIFBe80y/g/FDOK4vrNOSBJwc=",    # AES加密的笔记内容，密码默认为空
-      "encrypted": true,
-      "tags": ["2"],
-      "created_at": "2025-03-26T10:00:00Z",
-      "updated_at": "2025-03-26T11:20:00Z",
-      "status": "done"
+      "n_id": "195e2ab2b73cf3e",
+      "title": "示例任务2",
+      "content": "SGVsbG8gd29ybGQ=", // 加盐Base64编码的未加密内容
+      "encrypted": false,
+      "tags": ["1","2","3","4","5","6","7","8","9"],
+      "created_at": "2025-03-26T14:35:00Z",
+      "updated_at": "2025-03-26T15:10:00Z",
+      "status": "todo"
     }
   ]
 }
 ```
+
 ### 加密特别说明
 
 本程序的加密解密流程如下：
 
 ###### 加密：
-原文本->加盐->Base64编码->输入密码->SHA-256将密码转换为私钥->使用私钥加密Base64编码
+原文本 -> 加盐 -> Base64编码 -> 输入密码 -> SHA-256将密码转换为私钥 -> 使用私钥加密Base64编码
 
 ###### 解密：
-输入密码->SHA-256将密码转换为私钥->使用私钥解密Base64编码->Base64解码->去掉盐值->输出文本
+输入密码 -> SHA-256将密码转换为私钥 -> 使用私钥解密Base64编码 -> Base64解码 -> 去掉盐值 -> 输出文本
 
 未加密时的保存和读取流程如下：
 
 ###### 保存：
-原文本->加盐->Base64编码
+原文本 -> 加盐 -> Base64编码
 
 ###### 读取：
-Base64解码->去掉盐值->输出文本
+Base64解码 -> 去掉盐值 -> 输出文本
 
-其中，盐值为`"BLACKNOTE@"`，自动添加在每个任务的头部，解析时自动去掉盐值
-*自行操作配置文件时需要主动在Base64编码前主动在头部添加盐值
+其中，盐值为`"BLACKNOTE@"`，自动添加在每个任务的头部，解析时自动去掉盐值。
+* 自行操作配置文件时需要主动在Base64编码前主动在头部添加盐值
+
+---
+
+## 📂 项目目录结构
+```
+.
+├── .babelrc
+├── .editorconfig
+├── .gitignore
+├── .postcssrc.js
+├── LICENSE
+├── README.md
+├── SUPABASE_SETUP.md          # Supabase配置说明
+├── build/                     # 构建配置文件
+├── config/                    # 环境配置文件
+├── dist/                      # 生产构建产物
+├── index.html
+├── package-lock.json
+├── package.json
+├── server/                    # 1.0.8版本适配后端代码
+│   ├── app.js
+│   └── static/
+├── src/                       # 前端源代码
+│   ├── App.vue
+│   ├── components/            # 公共组件
+│   │   ├── AuthChangePassword.vue
+│   │   ├── AuthLogin.vue
+│   │   └── AuthRegister.vue
+│   ├── main.js
+│   ├── resource/              # 静态资源
+│   ├── router/                # 路由配置
+│   ├── store/                 # Vuex状态管理
+│   ├── utils/                 # 工具函数
+|   |   └── supabase.js        # supabase配置文件
+│   └── views/                 # 页面组件
+│       ├── MainView.vue
+│       ├── completed.vue      # 已完成任务页
+│       ├── edit.vue           # 编辑页
+│       ├── empty.vue
+│       ├── pending.vue        # 待完成任务页
+│       ├── root.vue
+│       ├── set/               # 设置页
+│       ├── tag.vue            # 标签分类页
+│       └── trash.vue          # 回收站页
+└── static/                    # 静态资源
+```
+
+---
 
 ## 🔥 后续优化方向
-(✅)在指定目录下增加标题筛选~~标题搜索~~功能，便于用户快速定位目标内容
+- [x] 在指定目录下增加标题筛选~~标题搜索~~功能，便于用户快速定位目标内容
 
-支持自定义背景图片（正在研究，本地文件需要require固定的路径加载图片，所以可能做不到响应式设置）
+- [x] 支持已登录用户自定义背景图片
 
-(✅)支持备份文件的云端同步功能（因政策要求及技术限制，短期内无法满足保护用户数据与符合有关部门规定的需求，故短期内云账号及云端备份功能不会上线）
+- [x] 支持备份文件的云端同步功能（因政策要求及技术限制，短期内无法满足保护用户数据与符合有关部门规定的需求，故短期内云账号及云端备份功能不会上线）
 
 (x)增加双层加密方案，支持设置密保或使用已登录用户身份重设密码（不实用，已废除）
 
 (x)密码输入错误6次自动锁定此任务1分钟，后续逐步增加锁定时长（比较鸡肋，已废除）
 
-(✅)支持基础的Markdown文本显示与编辑
+- [x] 支持基础的Markdown文本显示与编辑
 
-(✅)引入`supabase`的实时同步特性，能够确保同一个账号下的记事本可以自动同步其他端给出的修改
+- [x] 引入`supabase`的实时同步特性，能够确保同一个账号下的记事本可以自动同步其他端给出的修改
 
-(✅)记事本背景图片支持自定义上传至`supabase`的存储桶，并且登录后会自动完成背景加载
+- [x] 记事本背景图片支持自定义上传至`supabase`的存储桶，并且登录后会自动完成背景加载
 
-(✅)创建账号仪表盘
+- [x] 创建账号仪表盘设置项
 
-开发移动端的H5网页版本
+- [ ] 开发移动端的H5网页版本
+
+- [ ] 优化Markdown编辑器体验
+
+- [ ] 支持笔记分享链接功能
+
+- [ ] 增加多账号协作编辑功能
+
+- [ ] 支持查看云端历史备份版本
+
