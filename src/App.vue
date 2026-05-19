@@ -83,9 +83,7 @@
 
     <!-- 主内容区 -->
     <div id="main-content">
-      <transition name="main-fade" mode="out-in">
-        <router-view :views="views"/>
-      </transition>
+      <router-view :views="views"/>
     </div>
 
     <div class="icp-footer">

@@ -3,7 +3,7 @@
     <transition appear>
     <div v-if="showModal" class="password-modal" @click.self="cancelPassword">
       <!-- 密码输入模态框 -->
-          <div v-if="pretendEdit" div class="password-box">
+          <div v-if="preventEdit" div class="password-box">
               <h3>编辑被拒绝</h3>
               <p class="error">无法进入编辑，请将<p class="error">任务移出回收站后重试。</p></p>
               <div class="modal-buttons">
@@ -26,7 +26,7 @@
           </div>
     </div>
   </transition>
-  <transition name="edit-scale" appear>
+  <transition name="main-fade" appear>
     <div v-if="!showModal" class="edit-container" :style="{ backgroundColor: containerColor }">
       <!-- 编辑区域 -->
         <div class="header">
@@ -92,7 +92,7 @@
     data() {
       return {
         isEdit: false,
-        pretendEdit: false,
+        preventEdit: false,
         currentNote: null,
         decryptedContent: '',
         inputPassword: '',
@@ -116,7 +116,7 @@
         return this.$store.state.preferences.dark ? '#333333d5' : '#f9f9f9d5';
       },
       showModal() {
-        return this.pretendEdit || this.showPasswordModal;
+        return this.preventEdit || this.showPasswordModal;
       },
     },
     created() {
@@ -128,7 +128,7 @@
       }
 
       this.waitingEncrypt=this.currentNote.encrypted;//设置待加密状态
-      this.pretendEdit = this.currentNote.status=="remove" ? true : false;
+      this.preventEdit = this.currentNote.status=="remove" ? true : false;
       if (this.currentNote.encrypted) {
         this.showPasswordModal = true
       } else {
@@ -177,7 +177,7 @@
       },
 
       cancelPassword() {
-        if (this.pretendEdit) {
+        if (this.preventEdit) {
           this.$router.go(-1)
           return
         }
@@ -248,7 +248,7 @@
         this.currentNote = null;
         this.decryptedContent = '';
         this.showPasswordModal = false;
-        this.pretendEdit = false;
+        this.preventEdit = false;
         this.isEncrypting = false;
         this.encryptionKey = null;
         this.inputPassword = ''
@@ -262,7 +262,7 @@
         }
         //防跳转回来报错
         this.currentNote = newNote;
-        this.pretendEdit = this.currentNote.status === "remove";
+        this.preventEdit = this.currentNote.status === "remove";
 
         if (this.currentNote.encrypted) {
           this.showPasswordModal = true;

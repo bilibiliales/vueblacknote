@@ -5,6 +5,7 @@ import App from './App'
 import router from './router'
 import store from './store'
 import supabase, { getCurrentUser } from '@/utils/supabase'
+import '@/assets/task-board.css'
 
 Vue.config.productionTip = false
 
