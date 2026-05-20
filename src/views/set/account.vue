@@ -108,6 +108,7 @@ export default {
         background_url: ''
       },
       profileSubscription: null,
+      authSubscription: null,
     }
   },
   created() {
@@ -117,7 +118,7 @@ export default {
       this.authUsername = u.email ? u.email.split('@')[0] : ''
       this.fetchProfile()      // start realtime updates immediately for existing session
       this.subscribeProfileRealtime()    }
-    onAuthStateChange((event, session) => {
+    this.authSubscription = onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         this.hasLogin = true
         this.authUsername = session.user ? (session.user.email ? session.user.email.split('@')[0] : '') : ''
@@ -268,7 +269,7 @@ export default {
       alert('密码已修改，请重新登录')
       await supabase.auth.signOut()
       if (this.profileSubscription) {
-        supabase.removeSubscription(this.profileSubscription)
+        supabase.removeChannel(this.profileSubscription)
         this.profileSubscription = null
       }
       this.hasLogin = false
@@ -281,7 +282,7 @@ export default {
       if (!confirm('确定要登出吗？')) return
       await supabase.auth.signOut()
       if (this.profileSubscription) {
-        supabase.removeSubscription(this.profileSubscription)
+        supabase.removeChannel(this.profileSubscription)
         this.profileSubscription = null
       }
       this.hasLogin = false
@@ -310,7 +311,7 @@ export default {
         // sign out
         await supabase.auth.signOut()
         if (this.profileSubscription) {
-          supabase.removeSubscription(this.profileSubscription)
+          supabase.removeChannel(this.profileSubscription)
           this.profileSubscription = null
         }
         this.hasLogin = false
@@ -327,13 +328,16 @@ export default {
 
       // 防止重复订阅
       if (this.profileSubscription) {
-        supabase.removeSubscription(this.profileSubscription)
+        supabase.removeChannel(this.profileSubscription)
         this.profileSubscription = null
       }
 
       this.profileSubscription = supabase
-        .from(`profiles:id=eq.${user.id}`)
-        .on('UPDATE', (payload) => {
+        .channel(`profiles:${user.id}:${Date.now()}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+          (payload) => {
 
           const newData = payload.new
           if (!newData) return
@@ -387,6 +391,17 @@ export default {
           this.$store.commit('saveState')
         }
       }
+    }
+  }
+  ,
+  beforeUnmount() {
+    if (this.profileSubscription) {
+      supabase.removeChannel(this.profileSubscription)
+      this.profileSubscription = null
+    }
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe()
+      this.authSubscription = null
     }
   }
 }
@@ -661,7 +676,8 @@ export default {
 .modal-fade-leave-active {
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.4, 1);
 }
-.modal-fade-enter {
+.modal-fade-enter,
+.modal-fade-enter-from {
   opacity: 0;
   filter: blur(4px);
 }

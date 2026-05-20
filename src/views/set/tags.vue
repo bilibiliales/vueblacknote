@@ -25,13 +25,13 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
-
 export default {
   computed: {
-    ...mapState(['tags'])
+    tags() {
+      return this.$store.state.tags
+    }
   }
-};
+}
 </script>
 
 <style scoped>

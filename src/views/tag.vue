@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import TaskBoard from '@/components/TaskBoard';
+import TaskBoard from '@/components/TaskBoard.vue';
 
 export default {
   name: 'Tag',

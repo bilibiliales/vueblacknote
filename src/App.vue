@@ -1,5 +1,5 @@
 <template>
-  <div id="app" :style="{ backgroundImage: backgroundImgUrl ? 'url('+backgroundImgUrl+')' : 'none', backgroundColor: backgroundColor }">
+  <div id="blacknote-app" :style="{ backgroundImage: backgroundImgUrl ? 'url('+backgroundImgUrl+')' : 'none', backgroundColor: backgroundColor }">
     <!-- 左侧菜单栏 -->
     <div id="left-menu" :style="{ backgroundColor: leftMenuBgColor }">
       <div class="points">
@@ -28,7 +28,7 @@
       <!-- 标签菜单 -->
       <div class="menu-section">
         <h5>标签</h5>
-        <div v-for="tag in this.$store.state.tags" v-show="tag.show" :key="tag.id">
+        <div v-for="tag in $store.state.tags" v-show="tag.show" :key="tag.id">
           <router-link :to="`/tag/${tag.id}`" class="menu-item" active-class="active" exact>
             <div class="tag-color" :style="{backgroundColor: tag.color}"></div>
             <span class="text" :style="{ color: textColor }">{{ tag.name }}</span>
@@ -54,16 +54,16 @@
         <button class="nav-btn" @click="$router.go(-1)">&lt;</button>
         <button class="nav-btn" @click="$router.go(1)">&gt;</button>
         <span class="current-title">{{ currentTitle }}</span>
-        <div v-if="this.$store.state.preferences.pause_save_state" style="height: 30px; width: 30px; margin-top: 5px;">
+        <div v-if="$store.state.preferences.pause_save_state" style="height: 30px; width: 30px; margin-top: 5px;">
           <img src="./resource/取消保存.png" alt="取消保存">
         </div>
       </div>
 
       <div class="view-controls">
-        <button class="view-btn":class="{ 'active': views === 1 }" @click="views = 1">
+        <button class="view-btn" :class="{ 'active': views === 1 }" @click="views = 1">
           <img src="./resource/列表.png" alt="列表视图">
         </button>
-        <button class="view-btn":class="{ 'active': views === 2 }" @click="views = 2">
+        <button class="view-btn" :class="{ 'active': views === 2 }" @click="views = 2">
           <img src="./resource/卡片.png" alt="卡片视图">
         </button>
       </div>
@@ -87,9 +87,9 @@
     </div>
 
     <div class="icp-footer">
-      <a href="https://beian.miit.gov.cn/" target="_blank">湘ICP备2025112469号-1</a>
-      <img src="./resource/备案图标.png" alt="湘公网安备43010202001893号" style="max-width: 10px; max-height: 10px; margin-left: 5px;">
-      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=43010202001893" rel="noreferrer" target="_blank">湘公网安备43010202001893号</a>
+      <a href="https://beian.miit.gov.cn/" target="_blank">湘ICP备2025112469号-2</a>
+      <img src="./resource/备案图标.png" alt="湘公网安备43010202002059号" style="max-width: 10px; max-height: 10px; margin-left: 5px;">
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=43010202002059" rel="noreferrer" target="_blank">湘公网安备43010202002059号</a>
     </div>
 
     <!-- 偏好设置模态窗口 -->
@@ -105,7 +105,7 @@
 
 <script>
 import Preferences from '@/views/set/preferences.vue'
-import supabase, { getCurrentUser } from '@/utils/supabase'
+import supabase from '@/utils/supabase'
 
 export default {
   name: 'App',
@@ -145,9 +145,9 @@ export default {
         if (pref.background.startsWith('preset:')) {
           const name = pref.background.replace('preset:', '')
           // public bucket
-          const { publicURL, error } = supabase.storage.from('public-backgrounds').getPublicUrl(name)
-          if (!error && publicURL) {
-            this.backgroundImgUrl = publicURL
+          const { data } = supabase.storage.from('public-backgrounds').getPublicUrl(name)
+          if (data && data.publicUrl) {
+            this.backgroundImgUrl = data.publicUrl
             this.backgroundColor = ''
             return
           }
@@ -284,10 +284,21 @@ export default {
     transition: all 0.3s;
   }
 
+  html,
+  body,
   #app {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  #blacknote-app {
     display: flex;
+    width: 100%;
     min-height: 100vh;
-    background-size: 100% 100%;
+    background-size: cover;
+    background-position: center;
     background-attachment: fixed;
   }
 

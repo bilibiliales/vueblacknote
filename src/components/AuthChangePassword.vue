@@ -31,7 +31,7 @@ export default {
       const { error: signErr } = await signInWithUsername(username, this.current)
       if (signErr) { this.error = signErr.message || '当前密码验证失败'; return }
       // 更新密码
-      const { error } = await supabase.auth.update({ password: this.next })
+      const { error } = await supabase.auth.updateUser({ password: this.next })
       if (error) { this.error = error.message || '修改失败'; return }
       this.$emit('changed')
     }

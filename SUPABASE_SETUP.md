@@ -1,5 +1,7 @@
 # Supabase Setup for VueBlackNote
 
+当前 Vue 3 + Vite 版本只使用 Supabase 作为云端后端。旧版 Koa 文件备份服务已经移除。
+
 ## Tables
 
 -- 1. backups 表: 存储每个用户的加密备份数据
@@ -25,7 +27,11 @@ create table if not exists public.profiles (
 
 ## Storage
 
-创建一个名为 `backgrounds` 的存储桶，用于保存用户上传的背景图片，设为私有或公共按需。
+创建以下存储桶：
+
+- `backgrounds`：私有桶，用于保存用户上传的背景图片。
+- `avatars`：私有桶，用于保存用户头像。
+- `public-backgrounds`：公共桶，用于保存可在“外观设置”中选择的预设背景。
 
 ## RLS (Row Level Security) 策略
 
@@ -155,7 +161,7 @@ create policy "Users can delete own avatar"
 
 ---
 
-把上述 SQL 在 Supabase SQL Editor 中执行，并在 Supabase 控制台中创建 `backgrounds` 存储桶。确保在项目中的 `src/utils/supabase.js` 填入正确的 URL 与 ANON KEY。
+把上述 SQL 在 Supabase SQL Editor 中执行，并在 Supabase 控制台中创建所需存储桶。确保在项目中的 `src/utils/supabase.js` 填入正确的 URL 与 ANON KEY。
 
 ## realtime
 

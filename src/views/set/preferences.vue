@@ -17,9 +17,9 @@
         </nav>
         <div class="modal-body">
           <!-- 动态加载设置项 -->
-          <component :is="currentTab"></component>
+          <component :is="currentComponent" :key="currentTab"></component>
           <div class="footer">
-            <a href="javascript:;" @click="pushRoot">1.0.12</a>
+            <a href="javascript:;" @click="pushRoot">2.0.1</a>
           </div>
         </div>
       </div>
@@ -36,7 +36,8 @@
   export default {
     props: {
       isVisible: Boolean,
-      currentTab: String
+      currentTab: String,
+      views: Number
     },
     components: {
       Basic, Tags, Backup, Advance, Account
@@ -68,6 +69,15 @@
       }
     },
     computed: {
+      currentComponent() {
+        return {
+          basic: Basic,
+          tags: Tags,
+          backup: Backup,
+          advance: Advance,
+          account: Account
+        }[this.currentTab] || Basic
+      },
       textColor() {
         return this.$store.state.preferences.dark ? '#333333' : '#ffffff';
       }
@@ -173,7 +183,8 @@
     transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);;
   }
 
-  .v-enter {
+  .v-enter,
+  .v-enter-from {
     transform: translateY(-100%);
     opacity: 0;
   }

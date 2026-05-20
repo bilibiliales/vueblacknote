@@ -5,7 +5,7 @@
     <h3>👈点击左侧任一标签开始使用</h3>
     <p>如因备份文件损坏、数据结构异常等原因导致页面显示错误</p>
     请尝试&nbsp;<a href="#" @click.prevent="alerts" class="btn">强制删除本地数据</a><br/><br/>
-    <a href="https://github.com/bilibiliales/vueblacknote" style="color: #666; text-decoration: none;" target="_blank">版本号：1.0.12->></a><br/>
+    <a href="https://github.com/bilibiliales/vueblacknote" style="color: #666; text-decoration: none;" target="_blank">版本号：2.0.1->></a><br/>
     <a href="https://gitee.com/bilibiliales/vueblacknote" style="color: #666; text-decoration: none;" target="_blank">备用仓库地址->></a>
   </div>
 </template>

@@ -3,9 +3,9 @@
     <transition appear>
     <div v-if="showModal" class="password-modal" @click.self="cancelPassword">
       <!-- 密码输入模态框 -->
-          <div v-if="preventEdit" div class="password-box">
+          <div v-if="preventEdit" class="password-box">
               <h3>编辑被拒绝</h3>
-              <p class="error">无法进入编辑，请将<p class="error">任务移出回收站后重试。</p></p>
+              <p class="error">无法进入编辑，请将任务移出回收站后重试。</p>
               <div class="modal-buttons">
                 <button @click="cancelPassword" class="btn-cancel" style="padding: 8px 60px;">返回</button>
               </div>
@@ -36,7 +36,7 @@
           </span>
           <div class="controls">
             <button @click="toggleEncryption" class="encryption-btn">
-              <img :src="waitingEncrypt ? require('../resource/lock.png') : require('../resource/unlock.png')"
+              <img :src="waitingEncrypt ? lockIcon : unlockIcon"
                    alt="加密状态"
                    class="lock-icon" />
             </button>
@@ -66,7 +66,7 @@
             class="text-editor"
           ></textarea>
           <div v-else-if="$store.state.preferences.enable_markdown" class="markdown-wrapper">
-            <vue-markdown :source="decryptedContent" class="text-view" :toc="false" :breaks="true"></vue-markdown>
+            <MarkdownViewer :source="decryptedContent" class="text-view" />
           </div>
           <textarea v-model="decryptedContent" readonly="readonly" v-else class="text-editor"></textarea>
         </div>
@@ -76,18 +76,26 @@
 </template>
 
   <script>
-  import CryptoJS from 'crypto-js'
   import dayjs from 'dayjs';
   import 'dayjs/locale/zh-cn';
   import customParseFormat from 'dayjs/plugin/customParseFormat';
-  import VueMarkdown from 'vue-markdown'
+  import MarkdownViewer from '@/components/MarkdownViewer.vue'
+  import lockIcon from '@/resource/lock.png'
+  import unlockIcon from '@/resource/unlock.png'
+  import {
+    decodePlainContent,
+    decryptNoteContent,
+    encodePlainContent,
+    encryptNoteContent,
+    passwordToKey
+  } from '@/utils/noteCrypto'
 
   dayjs.extend(customParseFormat);
   dayjs.locale('zh-cn');
 
   export default {
     components: {
-      VueMarkdown
+      MarkdownViewer
     },
     data() {
       return {
@@ -100,7 +108,9 @@
         showPasswordModal: false,
         decryptError: '',
         isEncrypting: false,
-        waitingEncrypt: false
+        waitingEncrypt: false,
+        lockIcon,
+        unlockIcon
       }
     },
     computed: {
@@ -132,39 +142,20 @@
       if (this.currentNote.encrypted) {
         this.showPasswordModal = true
       } else {
-        this.decryptedContent = this.decodeBase64(this.currentNote.content).slice(10)
+        this.decryptedContent = decodePlainContent(this.currentNote.content)
       }
     },
     methods: {
-      // Base64解码
-      decodeBase64(content) {
-        try {
-          return CryptoJS.enc.Base64.parse(content).toString(CryptoJS.enc.Utf8)
-        } catch (error) {
-          console.error('解码失败:', error)
-          return content
-        }
-      },
-
       // 密码验证或设置
       handlePassword() {
         if (this.isEncrypting) {
-          this.encryptionKey = CryptoJS.SHA256(this.inputPassword).toString()
+          this.encryptionKey = passwordToKey(this.inputPassword)
           this.waitingEncrypt = true
           this.showPasswordModal = false
         } else {
           try {
-            const key = CryptoJS.SHA256(this.inputPassword).toString()
-            const bytes = CryptoJS.AES.decrypt(this.currentNote.content, key)
-            const base64Content = bytes.toString(CryptoJS.enc.Utf8)
-            if (!base64Content) throw new Error('解密失败')
-
-            const saltedContent = this.decodeBase64(base64Content)
-            if (!saltedContent.startsWith("BLACKNOTE@")) {
-              throw new Error('数据损坏')
-            }
-
-            this.decryptedContent = saltedContent.slice(10)
+            const { key, content } = decryptNoteContent(this.currentNote.content, this.inputPassword)
+            this.decryptedContent = content
             this.encryptionKey = key
             this.showPasswordModal = false
             this.decryptError = ''
@@ -214,20 +205,15 @@
       saveNote() {
         let content = this.decryptedContent
         try {
-          //Base64不允许编码空值，所以在文本前加盐
-          const base64Content = CryptoJS.enc.Base64.stringify(
-            CryptoJS.enc.Utf8.parse("BLACKNOTE@"+content)
-          )
-
           if (this.waitingEncrypt) {
             if (!this.encryptionKey) {
               alert('请先设置加密密码!')
               return
             }
-            content = CryptoJS.AES.encrypt(base64Content, this.encryptionKey).toString()
+            content = encryptNoteContent(content, this.encryptionKey)
             this.currentNote.encrypted = true;
           } else {
-            content = base64Content
+            content = encodePlainContent(content)
             this.currentNote.encrypted = false;
           }
           this.currentNote.content = content
@@ -267,7 +253,7 @@
         if (this.currentNote.encrypted) {
           this.showPasswordModal = true;
         } else {
-          this.decryptedContent = this.decodeBase64(this.currentNote.content).slice(10);
+          this.decryptedContent = decodePlainContent(this.currentNote.content);
         }
       },
     },
@@ -529,7 +515,8 @@
       transition: all 0.6s cubic-bezier(0.2, 0.8, 0.4, 1);
     }
 
-    .v-enter {
+    .v-enter,
+    .v-enter-from {
       transform: translateY(-100%);
       opacity: 0;
     }

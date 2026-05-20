@@ -24,9 +24,8 @@
                   @change="$store.commit('saveState')"
                 />
                 <span
-                  v-for="tagId in note.tags"
+                  v-for="tagId in visibleTagIds(note)"
                   :key="tagId"
-                  v-if="$store.state.tags.find(t => t.id === tagId).show"
                   class="tag-color"
                   :style="{ backgroundColor: getTagColor(tagId) }"
                 ></span>
@@ -36,7 +35,7 @@
                   <img src="../resource/lock.png" alt="加密" class="lock-icon" />
                 </span>
                 <span v-else class="encrypted"></span>
-                <button v-if="showEditButton" @click="editNote(note.n_id)" class="edit-button">查看/编辑</button>
+                <button v-if="showEditButton && status !== 'remove'" @click="editNote(note.n_id)" class="edit-button">查看/编辑</button>
                 <button
                   v-if="showForceDelete"
                   @click="removeForce(note)"
@@ -92,34 +91,35 @@
               <h4 :style="{ color: textColor }">{{ formatDate(note.created_at, 'MMMDD日') }}</h4>
               <span :style="{ color: textColor }">{{ formatDate(note.created_at, 'HH:mm') }}</span>
               <br />
-              <input type="text" v-model="note.title" class="card-title-input" :style="{ color: textColor }" /><br />
+              <input type="text" v-model="note.title" class="card-title-input" :style="{ color: textColor }" @change="$store.commit('saveState')" /><br />
               <span
-                v-for="tagId in note.tags"
+                v-for="tagId in visibleTagIds(note)"
                 :key="tagId"
-                v-if="$store.state.tags.find(t => t.id === tagId).show"
                 class="tag-color"
                 :style="{ backgroundColor: getTagColor(tagId) }"
               ></span
               ><br />
-              <button @click="editNote(note.n_id)" class="edit-button">查看/编辑</button>
-              <button
-                v-if="showForceDelete"
-                @click="removeForce(note)"
-                class="force-delete-button"
-              >
-                彻底删除
-              </button>
-              <select
-                v-model="note.status"
-                @click="setPreviousStatus(note)"
-                @change="removeList(note)"
-                class="status-select"
-                :style="{ backgroundColor: getStatusColor(note.status) }"
-              >
-                <option value="todo">待完成</option>
-                <option value="done">已完成</option>
-                <option value="remove">已删除</option>
-              </select>
+              <span class="card-actions">
+                <button v-if="status !== 'remove'" @click="editNote(note.n_id)" class="edit-button">查看/编辑</button>
+                <button
+                  v-if="showForceDelete"
+                  @click="removeForce(note)"
+                  class="force-delete-button"
+                >
+                  彻底删除
+                </button>
+                <select
+                  v-model="note.status"
+                  @click="setPreviousStatus(note)"
+                  @change="removeList(note)"
+                  class="status-select"
+                  :style="{ backgroundColor: getStatusColor(note.status) }"
+                >
+                  <option value="todo">待完成</option>
+                  <option value="done">已完成</option>
+                  <option value="remove">已删除</option>
+                </select>
+              </span>
               <span class="encrypted" v-if="note.encrypted">
                 <img src="../resource/lock.png" alt="加密" class="card-lock-icon" />
               </span>
@@ -218,13 +218,6 @@ export default {
     },
     transName() {
       // main-fade only runs when there is at least one non-encrypted, non-removed task
-      const hasAnimItem = this.filteredNotes.some(note => !note.encrypted && note.status !== 'remove');
-      if (!hasAnimItem) {
-        return '';
-      }
-      if (this.status === 'remove') {
-        return '';
-      }
       if (this.isInitialLoad) {
         return 'main-fade';
       }
@@ -255,6 +248,12 @@ export default {
     getTagColor(tagId) {
       const tag = this.$store.state.tags.find(t => t.id === tagId);
       return tag ? tag.color : '#b5b1b0';
+    },
+    visibleTagIds(note) {
+      return note.tags.filter(tagId => {
+        const tag = this.$store.state.tags.find(t => t.id === tagId);
+        return tag && tag.show;
+      });
     },
     getStatusColor(status) {
       const colors = {

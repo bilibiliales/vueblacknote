@@ -50,12 +50,13 @@
 <script>
 import AuthLogin from '@/components/AuthLogin.vue'
 import supabase, { getCurrentUser, onAuthStateChange } from '@/utils/supabase'
+import { stateKey, validateBackup } from '@/store'
 
 export default {
   components: { AuthLogin },
   data() {
     return {
-      state_key: 'blacknote_data',
+      state_key: stateKey,
       showLogin: false,
       inputUser: '',
       // no password/encryption any more
@@ -63,6 +64,7 @@ export default {
       cloudData: '',
       errorText: '',
       realtimeSub: null,
+      authSubscription: null,
     }
   },
   created() {
@@ -75,7 +77,7 @@ export default {
       this.startRealtime()
     }
     // 监听 auth 变化
-    onAuthStateChange((event, session) => {
+    this.authSubscription = onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         const u = session.user
         this.hasLogin = true
@@ -167,7 +169,7 @@ export default {
       if (!res.ok) { alert(res.message || '获取云端数据失败'); return }
       try {
         const json = JSON.parse(this.cloudData)
-        this.validateBackup(json)
+        validateBackup(json)
         localStorage.setItem(this.state_key, JSON.stringify(json))
         if (confirm('已将云端数据还原到本地，立即刷新以应用吗？')) window.location.reload()
         else alert('云端数据已写入本地存储，需要刷新应用以生效')
@@ -213,7 +215,7 @@ export default {
     },
 
     importBackupData(json) {
-      this.validateBackup(json)
+      validateBackup(json)
       localStorage.setItem(this.state_key, JSON.stringify(json))
       if (confirm('导入成功！需要立即刷新应用生效吗？')) window.location.reload()
       else { this.$refs.fileInput.value = ''; alert('数据已保存到本地存储，如需生效请刷新页面。') }
@@ -239,33 +241,20 @@ export default {
       })
     },
 
-    validateBackup(data) {
-      if (!data || typeof data !== 'object') throw new Error('无效的备份文件')
-      const requiredKeys = ['preferences', 'tags', 'notes']
-      requiredKeys.forEach(key => { if (!(key in data)) throw new Error(`缺少必要字段: ${key}`) })
-      if (!Array.isArray(data.tags) || !Array.isArray(data.notes)) throw new Error('数据格式不正确')
-    },
-
     // realtime
     startRealtime() {
       const user = getCurrentUser()
       if (!user) return
-      if (this.realtimeSub) return
+      this.stopRealtime()
       this.realtimeSub = supabase
-        .from(`backups:user_id=eq.${user.id}`)
-        .on('INSERT', payload => {
+        .channel(`backups:${user.id}:${Date.now()}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'backups', filter: `user_id=eq.${user.id}` },
+          payload => {
           if (!this.$store.state.preferences.pause_save_state) {
             try {
-              const parsed = JSON.parse(payload.new.data)
-              const json = JSON.parse(parsed.data)
-              // apply to Vuex store without echoing back to supabase
-              this.$store.commit('applyRemoteBackup', json)
-            } catch (e) { console.warn('实时同步解析失败', e) }
-          }
-        })
-        .on('UPDATE', payload => {
-          if (!this.$store.state.preferences.pause_save_state) {
-            try {
+              if (!payload.new || !payload.new.data) return
               const parsed = JSON.parse(payload.new.data)
               const json = JSON.parse(parsed.data)
               this.$store.commit('applyRemoteBackup', json)
@@ -277,9 +266,16 @@ export default {
 
     stopRealtime() {
       if (this.realtimeSub) {
-        supabase.removeSubscription(this.realtimeSub)
+        supabase.removeChannel(this.realtimeSub)
         this.realtimeSub = null
       }
+    }
+  },
+  beforeUnmount() {
+    this.stopRealtime()
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe()
+      this.authSubscription = null
     }
   }
 }
@@ -546,7 +542,8 @@ export default {
 .modal-fade-leave-active {
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.4, 1);
 }
-.modal-fade-enter {
+.modal-fade-enter,
+.modal-fade-enter-from {
   opacity: 0;
   filter: blur(4px);
 }

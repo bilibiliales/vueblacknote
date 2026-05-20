@@ -1,115 +1,89 @@
+import { defineStore } from 'pinia'
 import supabase, { getCurrentUser, onAuthStateChange } from '@/utils/supabase'
-import { computed } from 'vue'
-import { useStore } from 'vuex'
+import { useNotebookStore } from '@/store'
 
-const state = {
-  profile: {
-    username: '',
-    avatar_url: '',
-    background_url: ''
-  },
-  subscription: null
-}
+export const useUserStore = defineStore('user', {
+  state: () => ({
+    profile: {
+      username: '',
+      avatar_url: '',
+      background_url: ''
+    },
+    subscription: null,
+    authSubscription: null
+  }),
+  actions: {
+    setProfile(data) {
+      this.profile.username = data.username || ''
+      this.profile.avatar_url = data.avatar_url || ''
+      this.profile.background_url = data.background_url || ''
+    },
+    clearProfile() {
+      this.profile = { username: '', avatar_url: '', background_url: '' }
+    },
+    async fetchProfile() {
+      const user = getCurrentUser()
+      if (!user) return null
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, background_url')
+        .eq('id', user.id)
+        .single()
+      if (!error && data) {
+        this.setProfile(data)
+        return data
+      }
+      return null
+    },
+    subscribeRealtime() {
+      const user = getCurrentUser()
+      if (!user) return
+      this.unsubscribeRealtime()
 
-const mutations = {
-  setProfile(state, data) {
-    state.profile.username = data.username || ''
-    state.profile.avatar_url = data.avatar_url || ''
-    state.profile.background_url = data.background_url || ''
-  },
-  clearProfile(state) {
-    state.profile = { username: '', avatar_url: '', background_url: '' }
-  },
-  setSubscription(state, sub) {
-    state.subscription = sub
-  },
-  clearSubscription(state) {
-    state.subscription = null
-  }
-}
+      this.subscription = supabase
+        .channel(`profiles:${user.id}:${Date.now()}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+          payload => {
+            const newData = payload.new
+            if (!newData) return
+            this.setProfile(newData)
 
-const actions = {
-  async fetchProfile({ commit }) {
-    const user = getCurrentUser()
-    if (!user) return null
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('username, avatar_url, background_url')
-      .eq('id', user.id)
-      .single()
-    if (!error && data) {
-      commit('setProfile', data)
-      return data
-    }
-    return null
-  },
-
-  async subscribeRealtime({ commit, state, rootState }) {
-    const user = getCurrentUser()
-    if (!user) return
-    if (state.subscription) {
-      try { supabase.removeSubscription(state.subscription) } catch (e) { /* ignore */ }
-      commit('clearSubscription')
-    }
-    const sub = supabase
-      .from(`profiles:id=eq.${user.id}`)
-      .on('UPDATE', payload => {
-        const newData = payload.new
-        if (!newData) return
-        commit('setProfile', newData)
-        // sync background into preferences (similar to account.vue logic)
-        if (!rootState.preferences.pause_save_state) {
-          const prefs = rootState.preferences
-          if (newData.background_url) {
-            prefs.background = 'custom'
-            prefs.background_url = newData.background_url
-          } else {
-            prefs.background = ''
-            prefs.background_url = ''
+            const notebook = useNotebookStore()
+            if (!notebook.preferences.pause_save_state) {
+              if (newData.background_url) {
+                notebook.preferences.background = 'custom'
+                notebook.preferences.background_url = newData.background_url
+              } else {
+                notebook.preferences.background = ''
+                notebook.preferences.background_url = ''
+              }
+              notebook.saveState()
+            }
           }
-          // persist root preferences
-          commit('saveState', null, { root: true })
+        )
+        .subscribe()
+    },
+    unsubscribeRealtime() {
+      if (this.subscription) {
+        supabase.removeChannel(this.subscription)
+        this.subscription = null
+      }
+    },
+    initAuthListener() {
+      if (this.authSubscription) return
+      const listener = onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN') {
+          this.fetchProfile()
+          this.subscribeRealtime()
+        }
+        if (event === 'SIGNED_OUT') {
+          this.unsubscribeRealtime()
+          this.clearProfile()
         }
       })
-      .subscribe()
-    commit('setSubscription', sub)
-  },
-
-  unsubscribeRealtime({ state, commit }) {
-    if (state.subscription) {
-      try { supabase.removeSubscription(state.subscription) } catch (e) { /* ignore */ }
-      commit('clearSubscription')
+      this.authSubscription = listener
     }
-  },
-
-  initAuthListener({ dispatch, commit }) {
-    onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        dispatch('fetchProfile')
-        dispatch('subscribeRealtime')
-      }
-      if (event === 'SIGNED_OUT') {
-        dispatch('unsubscribeRealtime')
-        commit('clearProfile')
-      }
-    })
   }
-}
-
-export default {
-  namespaced: true,
-  state,
-  mutations,
-  actions
-}
-
-export function useUserStore() {
-  const store = useStore()
-  return {
-    profile: computed(() => store.state.user.profile),
-    fetchProfile: () => store.dispatch('user/fetchProfile'),
-    subscribeRealtime: () => store.dispatch('user/subscribeRealtime'),
-    unsubscribeRealtime: () => store.dispatch('user/unsubscribeRealtime'),
-    initAuthListener: () => store.dispatch('user/initAuthListener')
-  }
-}
+})

@@ -1,19 +1,16 @@
-import Vue from 'vue'
-import Router from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
-//主路由组件
-import pending from '@/views/pending'
-import completed from '@/views/completed'
-import tag from '@/views/tag'
-import trash from '@/views/trash'
-import MainView from '@/views/MainView'
-import root from '@/views/root'
-import empty from '@/views/empty'
+import pending from '@/views/pending.vue'
+import completed from '@/views/completed.vue'
+import tag from '@/views/tag.vue'
+import trash from '@/views/trash.vue'
+import MainView from '@/views/MainView.vue'
+import root from '@/views/root.vue'
+import empty from '@/views/empty.vue'
 import edit from '@/views/edit.vue'
 
-Vue.use(Router)
-
-export default new Router({
+const router = createRouter({
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
@@ -57,3 +54,5 @@ export default new Router({
     }
   ]
 })
+
+export default router

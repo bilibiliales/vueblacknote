@@ -30,14 +30,15 @@
 .search-input { padding-left: 10px; height: 30px; border-radius: 6px; border: none; color:#888; background: rgba(175, 175, 175,0.2); text-align: left; transition: all 0.3s; outline: none; }
 .search-input:focus { opacity: 0.75; }
 .main-fade-enter-active { transition: all 0.8s cubic-bezier(0.2, 0.8, 0.4, 1); }
-.main-fade-enter { opacity: 0; transform: translateY(-30px); }
+.main-fade-enter, .main-fade-enter-from { opacity: 0; transform: translateY(-30px); }
 .main-fade-enter-to { opacity: 1; transform: translateY(0px); }
 .slide-left-enter-active, .slide-right-enter-active, .slide-left-leave-active, .slide-right-leave-active { transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1); }
-.slide-left-enter { opacity: 0; transform: translateX(20px); }
+.slide-left-enter, .slide-left-enter-from { opacity: 0; transform: translateX(20px); }
 .slide-left-leave-to { opacity: 0; transform: translateX(-20px); }
-.slide-right-enter { opacity: 0; transform: translateX(-20px); }
+.slide-right-enter, .slide-right-enter-from { opacity: 0; transform: translateX(-20px); }
 .slide-right-leave-to { opacity: 0; transform: translateX(20px); }
 .task-enter-active, .task-leave-active { transition: all 0.35s ease; }
-.task-enter, .task-leave-to { opacity: 0; transform: translateY(10px); }
+.task-enter, .task-enter-from, .task-leave-to { opacity: 0; transform: translateY(10px); }
+.card-actions { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; }
 .task-move { transition: transform 0.35s ease; }
 .card-grid { display: flex; flex-wrap: wrap; gap: 10px; }
