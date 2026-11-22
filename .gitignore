@@ -13,3 +13,6 @@ vite-dev*.log
 *.ntvs*
 *.njsproj
 *.sln
+
+# Dependency lockfile (intentionally not tracked)
+package-lock.json
